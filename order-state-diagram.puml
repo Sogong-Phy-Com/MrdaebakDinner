@@ -1,0 +1,115 @@
+@startuml OrderStateDiagram
+!theme plain
+skinparam state {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+
+title Order State Diagram - Mr. DaeBak Dinner Service
+
+[*] --> Pending: createOrder()\n[action: set paymentStatus=pending,\nadminApprovalStatus=PENDING]
+
+state "Pending" as Pending {
+  state "AdminApproval_PENDING" as AdminPending
+  state "AdminApproval_APPROVED" as AdminApproved
+}
+
+Pending : adminApprovalStatus = PENDING
+Pending : status = pending
+Pending : paymentStatus = pending
+
+Pending --> AdminPending: [initial]
+
+AdminPending --> AdminApproved: adminApproveOrder()\n[guard: inventory available]\n[action: create InventoryReservation,\ncreate DeliverySchedule]
+
+AdminPending --> Cancelled: adminRejectOrder()\n[action: process refund,\nrelease resources]
+
+AdminApproved --> Cancelled: cancelOrder()\n[guard: before cooking starts]\n[action: release InventoryReservation,\ncancel DeliverySchedule]
+
+state "Cooking" as Cooking {
+  Cooking : status = cooking
+  Cooking : adminApprovalStatus = APPROVED
+}
+
+AdminApproved --> Cooking: startCooking()\n[guard: adminApprovalStatus == APPROVED\nstatus == pending]\n[action: consume InventoryReservation,\nreduce capacity_per_window]
+
+state "OutForDelivery" as OutForDelivery {
+  OutForDelivery : status = out_for_delivery
+  OutForDelivery : adminApprovalStatus = APPROVED
+}
+
+Cooking --> OutForDelivery: startDelivery()\n[guard: status == cooking]
+
+state "Delivered" as Delivered {
+  Delivered : status = delivered
+  Delivered : adminApprovalStatus = APPROVED
+}
+
+OutForDelivery --> Delivered: completeDelivery()\n[guard: status == out_for_delivery]\n[action: notify customer]
+
+Cooking --> Cancelled: cancelOrder()\n[guard: after cooking started]\n[action: inventory already consumed,\ncancel DeliverySchedule]
+
+OutForDelivery --> Cancelled: cancelOrder()\n[guard: during delivery]\n[action: inventory already consumed]
+
+state "Cancelled" as Cancelled {
+  Cancelled : status = cancelled
+}
+
+Cancelled --> [*]
+
+Delivered --> [*]
+
+state "Payment States" as PaymentStates {
+  state "PaymentPending" as PaymentPending
+  state "PaymentPaid" as PaymentPaid
+  state "PaymentFailed" as PaymentFailed
+}
+
+PaymentPending: paymentStatus = pending
+PaymentPaid: paymentStatus = paid
+PaymentFailed: paymentStatus = failed
+
+PaymentPending --> PaymentPaid: processPayment()\n[action: set paymentMethod]
+
+PaymentPending --> PaymentFailed: paymentFailure()\n[action: handle payment error]
+
+PaymentFailed --> PaymentPaid: retryPayment()\n[action: retry payment processing]
+
+note right of Pending
+  주문 생성 시:
+  - paymentStatus = "pending"
+  - adminApprovalStatus = "PENDING"
+  - status = "pending"
+end note
+
+note right of AdminApproved
+  관리자 승인 후:
+  - InventoryReservation 생성 (consumed=false)
+  - DeliverySchedule 생성
+  - 주문 수정 가능 (배달 1일 전까지)
+end note
+
+note right of Cooking
+  조리 시작 시:
+  - InventoryReservation.consumed = true
+  - capacity_per_window 차감
+  - 실제 재고 소비
+end note
+
+note right of Delivered
+  배달 완료:
+  - 최종 상태
+  - 재고는 이미 소비됨
+end note
+
+note right of Cancelled
+  취소 가능 시점:
+  1. 관리자 거부 시
+  2. 승인 후 조리 전
+  3. 조리 시작 후 (재고는 이미 소비됨)
+  4. 배달 중 (재고는 이미 소비됨)
+end note
+
+@enduml
+

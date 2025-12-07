@@ -1,0 +1,21 @@
+@startuml UC5: Manage Orders - List Orders No Permission
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Order Management ==
+
+User -> System: Access Order Management Page
+System -> Server: Request Order List
+Server -> Server: Check Permission
+Server -> Server: No Permission Found
+
+Server -> System: Permission Denied
+System -> User: Display Permission Error Message
+
+@enduml

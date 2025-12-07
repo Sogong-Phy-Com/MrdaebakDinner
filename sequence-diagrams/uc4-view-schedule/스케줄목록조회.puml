@@ -1,0 +1,20 @@
+@startuml UC4: View Schedule - List Schedules
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Schedule Management ==
+
+User -> System: Access Schedule Management Page
+System -> Server: Request Schedule List
+Server -> Server: Retrieve Schedules
+Server -> Server: Retrieve Order and Employee Information
+Server -> System: Schedule List Transfer
+System -> User: Display Schedule List\n(Date, Time, Address, Employee)
+
+@enduml

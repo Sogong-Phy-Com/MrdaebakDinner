@@ -1,0 +1,79 @@
+@startuml DeliveryScheduleStateDiagram
+!theme plain
+skinparam state {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+
+title DeliverySchedule State Diagram - Mr. DaeBak Dinner Service
+
+[*] --> SCHEDULED: commitAssignmentForOrder()\n[action: create DeliverySchedule,\nset employeeId,\nset deliveryAddress,\nset departureTime,\nset arrivalTime,\nset returnTime]
+
+state "SCHEDULED" as SCHEDULED {
+  SCHEDULED : status = SCHEDULED
+  SCHEDULED : order assigned
+  SCHEDULED : delivery time scheduled
+}
+
+SCHEDULED --> IN_PROGRESS: updateStatus()\n[guard: order status == out_for_delivery]\n[action: set status = IN_PROGRESS]
+
+SCHEDULED --> COMPLETED: updateStatus()\n[guard: order status == delivered]\n[action: set status = COMPLETED]
+
+SCHEDULED --> CANCELLED: cancelScheduleForOrder()\n[guard: order cancelled]\n[action: set status = CANCELLED]
+
+state "IN_PROGRESS" as IN_PROGRESS {
+  IN_PROGRESS : status = IN_PROGRESS
+  IN_PROGRESS : delivery in progress
+}
+
+IN_PROGRESS --> COMPLETED: updateStatus()\n[guard: order status == delivered]\n[action: set status = COMPLETED]
+
+IN_PROGRESS --> CANCELLED: cancelScheduleForOrder()\n[guard: order cancelled during delivery]\n[action: set status = CANCELLED]
+
+state "COMPLETED" as COMPLETED {
+  COMPLETED : status = COMPLETED
+  COMPLETED : delivery completed
+  COMPLETED : final state
+}
+
+state "CANCELLED" as CANCELLED {
+  CANCELLED : status = CANCELLED
+  CANCELLED : schedule cancelled
+  CANCELLED : final state
+}
+
+COMPLETED --> [*]
+
+CANCELLED --> [*]
+
+note right of SCHEDULED
+  스케줄 생성 시:
+  - 관리자 승인 시 생성
+  - 직원 배정됨
+  - 배달 시간 예약됨
+  - 초기 상태 = SCHEDULED
+end note
+
+note right of IN_PROGRESS
+  배달 진행 중:
+  - 주문 상태가 out_for_delivery일 때
+  - 배달 직원이 출발함
+  - 배달 진행 중
+end note
+
+note right of COMPLETED
+  배달 완료:
+  - 주문 상태가 delivered일 때
+  - 최종 상태
+end note
+
+note right of CANCELLED
+  스케줄 취소:
+  - 주문 취소 시
+  - 관리자가 스케줄 취소 시
+  - 최종 상태
+end note
+
+@enduml
+

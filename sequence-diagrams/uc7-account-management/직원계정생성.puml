@@ -1,0 +1,22 @@
+@startuml UC7: Account Management - Create Employee
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Create Employee Account ==
+
+User -> System: Input Employee Account Form
+User -> System: Press "Create Employee"
+System -> Server: Request Create Employee Account
+Server -> Server: Check Email Duplication
+Server -> Server: Create Employee Account
+Server -> Server: Generate Token
+Server -> System: Account Created
+System -> User: Display Account Created Message
+
+@enduml

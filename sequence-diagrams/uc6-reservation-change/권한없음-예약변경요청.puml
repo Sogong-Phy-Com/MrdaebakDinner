@@ -1,0 +1,21 @@
+@startuml UC6: Reservation Change - Create Request No Permission
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Create Change Request ==
+
+User -> System: Press "Order Change Request" Button
+System -> Server: Request Create Change Request
+Server -> Server: Check Order Ownership
+Server -> Server: User Not Owner of Order
+
+Server -> System: Permission Denied Error
+System -> User: Display Error Message\n("You can only change your own orders")
+
+@enduml

@@ -1,0 +1,21 @@
+@startuml UC7: Account Management - Update User Info
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Update User Information ==
+
+User -> System: Input User Information Form
+User -> System: Press "Update"
+System -> Server: Request Update User Information
+Server -> Server: Check User
+Server -> Server: Update User Information
+Server -> System: User Information Updated
+System -> User: Display Information Updated Message
+
+@enduml

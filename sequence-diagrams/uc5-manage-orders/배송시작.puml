@@ -1,0 +1,21 @@
+@startuml UC5: Manage Orders - Start Delivery
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Start Delivery ==
+
+User -> System: Press "Start Delivery" Button
+System -> Server: Request Start Delivery
+Server -> Server: Check Order
+Server -> Server: Create Delivery Schedule
+Server -> Server: Update Order Status to Out for Delivery
+Server -> System: Delivery Started
+System -> User: Display Delivery Started Message
+
+@enduml

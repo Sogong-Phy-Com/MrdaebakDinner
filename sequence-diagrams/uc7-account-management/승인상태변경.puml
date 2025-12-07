@@ -1,0 +1,20 @@
+@startuml UC7: Account Management - Update Approval Status
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Update Approval Status ==
+
+User -> System: Press "Approve" or "Reject" Button
+System -> Server: Request Update Approval Status
+Server -> Server: Check User
+Server -> Server: Update Approval Status
+Server -> System: Approval Status Updated
+System -> User: Display Approval Status Updated Message
+
+@enduml

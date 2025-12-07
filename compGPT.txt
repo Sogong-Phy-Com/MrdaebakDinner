@@ -1,0 +1,89 @@
+@startuml
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam componentFontSize 11
+skinparam packageFontSize 13
+skinparam roundcorner 8
+skinparam shadowing true
+
+title Mr. DaeBak Dinner Service - Component Diagram
+
+' ============================================
+' 예시 이미지처럼 3개의 큰 서브시스템으로 구성
+' ============================================
+
+package "Client Layer" {
+  component [React Frontend] as ReactFrontend
+  component [Customer Pages] as CustomerPages
+  component [Admin Pages] as AdminPages
+  component [Voice Order UI] as VoiceUI
+  component [Web Speech API] as SpeechAPI
+}
+
+package "Application Layer" {
+  component [Order Controller] as OrderCtrl
+  component [Auth Controller] as AuthCtrl
+  component [Voice Order Controller] as VoiceCtrl
+  component [Order Service] as OrderService
+  component [Payment Service] as PaymentService
+  component [Voice Order Services] as VoiceServices
+  component [Inventory Service] as InventoryService
+}
+
+package "Data Layer" {
+  component [Order Repository] as OrderRepo
+  component [User Repository] as UserRepo
+  component [Inventory Repository] as InvRepo
+  component [SQLite Database] as DB
+  component [Database Config] as DBConfig
+  component [Security Config] as SecurityConfig
+  component [Inventory Scheduler] as Scheduler
+}
+
+cloud "External Services" {
+  component [Groq LLM API] as GroqAPI
+}
+
+' ============================================
+' Client Layer 내부 관계
+' ============================================
+ReactFrontend --> CustomerPages
+ReactFrontend --> AdminPages
+ReactFrontend --> VoiceUI
+VoiceUI --> SpeechAPI
+
+' ============================================
+' Client Layer -> Application Layer 연결
+' ============================================
+ReactFrontend --> OrderCtrl
+ReactFrontend --> AuthCtrl
+ReactFrontend --> VoiceCtrl
+
+' ============================================
+' Application Layer 내부 관계
+' ============================================
+OrderCtrl --> OrderService
+AuthCtrl --> OrderService
+VoiceCtrl --> VoiceServices
+OrderService --> PaymentService
+VoiceServices --> GroqAPI
+
+' ============================================
+' Application Layer -> Data Layer 연결
+' ============================================
+OrderService --> OrderRepo
+InventoryService --> InvRepo
+OrderService --> UserRepo
+
+' ============================================
+' Data Layer 내부 관계
+' ============================================
+OrderRepo --> DB
+InvRepo --> DB
+UserRepo --> DB
+DBConfig --> DB
+SecurityConfig --> OrderCtrl
+Scheduler --> DB
+
+@enduml

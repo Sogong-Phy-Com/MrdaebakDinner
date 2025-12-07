@@ -1,0 +1,21 @@
+@startuml UC3: Check Inventory - Restock Inventory
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Restock Request ==
+
+User -> System: Input Restock Quantity
+User -> System: Press "Restock"
+System -> Server: Request Restock Inventory
+Server -> Server: Check Menu Item
+Server -> Server: Update Inventory Quantity
+Server -> System: Restock Complete
+System -> User: Display Restock Complete Message
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam componentFontSize 11
+skinparam packageFontSize 13
+skinparam roundcorner 8
+skinparam shadowing true
+skinparam arrowColor #333333
+skinparam nodeBorderColor #000000
+
+title Mr. DaeBak Dinner Service - Deployment Diagram
+
+' ============================================
+' 예시 이미지처럼 중앙 서버 위쪽, 클라이언트/보조 서버들 아래쪽 배치
+' ============================================
+
+' 중앙 서버 노드 (Computer Center에 해당 - 위쪽)
+node "Application Server\n(Render Cloud Platform)" as AppServer {
+  component [DinnerService\n(from Component View)] as DinnerService
+}
+
+' 클라이언트/보조 서버 노드들 (아래쪽 수평 배치)
+node "Client PC" as ClientPC {
+  component [Web Browser] as Browser
+}
+
+node "Frontend Server" as FrontendServer {
+  component [React Application\n(from Component View)] as ReactApp
+}
+
+node "Database Server" as DatabaseServer {
+  component [SQLite Database\n(from Component View)] as Database
+}
+
+cloud "External API Service" as ExternalAPI {
+  component [Groq LLM API] as GroqAPI
+}
+
+' ============================================
+' Artifact 정의 (예시처럼 artifact 표시)
+' ============================================
+artifact "dinner-service.jar\n(from DinnerService)" as JARArtifact
+artifact "react-build\n(from React Application)" as ReactArtifact
+artifact "mrdabak.db\norders.db\ninventory.db\nschedule.db\n(from SQLite Database)" as DBArtifact
+
+' ============================================
+' Deploy 관계 (예시처럼 <<deploy>> 사용)
+' ============================================
+DinnerService ..> JARArtifact : <<deploy>>
+ReactApp ..> ReactArtifact : <<deploy>>
+Database ..> DBArtifact : <<deploy>>
+
+' ============================================
+' 컴포넌트-아티팩트 연결 정리
+' ============================================
+DinnerService -[hidden]-> JARArtifact
+ReactApp -[hidden]-> ReactArtifact
+Database -[hidden]-> DBArtifact
+
+' ============================================
+' 노드 간 연결 (예시처럼 실선과 간단한 라벨)
+' ============================================
+ClientPC --> AppServer : HTTPS/HTTP
+FrontendServer --> AppServer : HTTP/REST API
+AppServer --> DatabaseServer : JDBC/SQLite
+AppServer --> ExternalAPI : HTTPS API
+
+@enduml

@@ -1,0 +1,20 @@
+@startuml UC5: Manage Orders - Start Cooking
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Start Cooking ==
+
+User -> System: Press "Start Cooking" Button
+System -> Server: Request Start Cooking
+Server -> Server: Check Order
+Server -> Server: Update Order Status to Cooking
+Server -> System: Cooking Started
+System -> User: Display Cooking Started Message
+
+@enduml

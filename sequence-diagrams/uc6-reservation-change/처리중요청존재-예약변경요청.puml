@@ -1,0 +1,23 @@
+@startuml UC6: Reservation Change - Create Request Pending Exists
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Create Change Request ==
+
+User -> System: Press "Order Change Request" Button
+System -> Server: Request Create Change Request
+Server -> Server: Check Order Ownership
+Server -> Server: Check Change Deadline
+Server -> Server: Check Pending Requests
+Server -> Server: Pending Request Found
+
+Server -> System: Pending Request Exists Error
+System -> User: Display Error Message\n("There is already a pending change request")
+
+@enduml

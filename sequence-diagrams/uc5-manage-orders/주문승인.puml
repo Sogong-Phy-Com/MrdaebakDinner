@@ -1,0 +1,20 @@
+@startuml UC5: Manage Orders - Approve Order
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Approve Order ==
+
+User -> System: Press "Approve Order" Button
+System -> Server: Request Order Approval
+Server -> Server: Check Order
+Server -> Server: Update Order Status to Approved
+Server -> System: Approval Complete
+System -> User: Display Approval Complete Message
+
+@enduml

@@ -1,0 +1,25 @@
+@startuml UC6: Reservation Change - Create Request Normal
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Create Change Request ==
+
+User -> System: Press "Order Change Request" Button
+System -> Server: Request Create Change Request
+Server -> Server: Check Order Ownership
+Server -> Server: Check Change Deadline\n(3 days before delivery)
+Server -> Server: Check Pending Requests
+Server -> Server: Calculate New Order Amount
+Server -> Server: Validate Inventory
+Server -> Server: Calculate Change Fee
+Server -> Server: Calculate Price Difference
+Server -> System: Change Request Created
+System -> User: Display Change Request Accepted
+
+@enduml

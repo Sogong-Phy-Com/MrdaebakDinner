@@ -1,0 +1,472 @@
+@startuml 모듈_측면_다이어그램
+!theme plain
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam packageFontSize 14
+skinparam componentFontSize 12
+skinparam roundcorner 10
+
+title 모듈 측면 다이어그램 - 분할, 사용관계, 계층 구조, 데이터 모델
+
+' ============================================
+' 계층 1: 프레젠테이션 계층
+' ============================================
+package "프레젠테이션 계층 (Presentation Layer)" {
+  package "React Client" {
+    [Pages Module] as Pages
+    [Components Module] as Components
+    [Contexts Module] as Contexts
+    [Types Module] as Types
+  }
+  
+  Pages --> Components
+  Pages --> Contexts
+  Components --> Contexts
+  Components --> Types
+}
+
+' ============================================
+' 계층 2: 애플리케이션 계층
+' ============================================
+package "애플리케이션 계층 (Application Layer)" {
+  package "Controller Module" {
+    [OrderController] as OrderCtrl
+    [AuthController] as AuthCtrl
+    [AdminController] as AdminCtrl
+    [EmployeeController] as EmpCtrl
+    [InventoryController] as InvCtrl
+    [PaymentController] as PayCtrl
+    [VoiceOrderController] as VoiceCtrl
+    [MenuController] as MenuCtrl
+  }
+  
+  package "Service Module" {
+    [OrderService] as OrderSvc
+    [AuthService] as AuthSvc
+    [InventoryService] as InvSvc
+    [PaymentService] as PaySvc
+    [DeliverySchedulingService] as ScheduleSvc
+    [OrderChangeRequestService] as ChangeReqSvc
+    [VoiceOrderSessionService] as VoiceSvc
+    [JwtService] as JwtSvc
+    [TravelTimeEstimator] as TravelSvc
+  }
+  
+  package "DTO Module" {
+    [AuthDTO] as AuthDTO
+    [OrderDTO] as OrderDTO
+    [InventoryDTO] as InvDTO
+    [PaymentDTO] as PayDTO
+    [VoiceDTO] as VoiceDTO
+  }
+}
+
+' ============================================
+' 계층 3: 도메인 계층
+' ============================================
+package "도메인 계층 (Domain Layer)" {
+  package "Model Module" {
+    [User Model] as UserModel
+    [Order Model] as OrderModel
+    [OrderItem Model] as OrderItemModel
+    [MenuItem Model] as MenuModel
+    [Inventory Model] as InvModel
+    [Schedule Model] as ScheduleModel
+    [VoiceSession Model] as VoiceModel
+    [ChangeRequest Model] as ChangeModel
+  }
+  
+  package "Repository Module" {
+    [UserRepository] as UserRepo
+    [OrderRepository] as OrderRepo
+    [OrderItemRepository] as OrderItemRepo
+    [MenuItemRepository] as MenuRepo
+    [InventoryRepository] as InvRepo
+    [ScheduleRepository] as ScheduleRepo
+    [VoiceSessionRepository] as VoiceRepo
+  }
+}
+
+' ============================================
+' 계층 4: 인프라 계층
+' ============================================
+package "인프라 계층 (Infrastructure Layer)" {
+  package "Config Module" {
+    [DatabaseConfig] as DBConfig
+    [SecurityConfig] as SecurityConfig
+    [WebConfig] as WebConfig
+    [JwtFilter] as JwtFilter
+  }
+  
+  package "Data Module" {
+    database "Main DB\n(Users, Menu)" as MainDB
+    database "Order DB\n(Orders, Items)" as OrderDB
+    database "Inventory DB\n(Stock, Reservations)" as InvDB
+    database "Schedule DB\n(Deliveries, Assignments)" as ScheduleDB
+  }
+  
+  package "External Module" {
+    [Groq API Client] as GroqAPI
+    [Scheduler] as Scheduler
+  }
+}
+
+' ============================================
+' 사용관계 (Uses Relationship)
+' ============================================
+Pages --> OrderCtrl : uses
+Pages --> AuthCtrl : uses
+Pages --> AdminCtrl : uses
+Pages --> EmpCtrl : uses
+
+OrderCtrl --> OrderSvc : uses
+AuthCtrl --> AuthSvc : uses
+AdminCtrl --> OrderSvc : uses
+AdminCtrl --> AuthSvc : uses
+EmpCtrl --> OrderSvc : uses
+InvCtrl --> InvSvc : uses
+PayCtrl --> PaySvc : uses
+VoiceCtrl --> VoiceSvc : uses
+
+OrderSvc --> OrderRepo : uses
+OrderSvc --> InvSvc : uses
+OrderSvc --> PaySvc : uses
+OrderSvc --> ScheduleSvc : uses
+AuthSvc --> UserRepo : uses
+AuthSvc --> JwtSvc : uses
+InvSvc --> InvRepo : uses
+ChangeReqSvc --> OrderSvc : uses
+ChangeReqSvc --> PaySvc : uses
+VoiceSvc --> VoiceRepo : uses
+VoiceSvc --> OrderSvc : uses
+VoiceSvc --> GroqAPI : uses
+
+OrderRepo --> OrderDB : uses
+UserRepo --> MainDB : uses
+MenuRepo --> MainDB : uses
+InvRepo --> InvDB : uses
+ScheduleRepo --> ScheduleDB : uses
+
+Scheduler --> InvDB : uses
+JwtFilter --> JwtSvc : uses
+
+OrderSvc --> OrderDTO : uses
+AuthSvc --> AuthDTO : uses
+InvSvc --> InvDTO : uses
+PaySvc --> PayDTO : uses
+VoiceSvc --> VoiceDTO : uses
+
+@enduml
+
+
+@startuml 컴포넌트_측면_다이어그램
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam componentFontSize 14
+skinparam packageFontSize 16
+skinparam roundcorner 10
+skinparam shadowing true
+
+title 컴포넌트 측면 다이어그램 - 클라이언트-서버, 파이프-필터, 출판-구독, 이벤트 중심, 리파지토리
+
+' ============================================
+' 클라이언트-서버 아키텍처
+' ============================================
+package "클라이언트 측면" {
+  component [React Web Client] as WebClient
+  component [Voice UI Component] as VoiceUI
+  component [Order UI Component] as OrderUI
+  component [Admin UI Component] as AdminUI
+  component [Employee UI Component] as EmpUI
+  component [Web Speech API] as SpeechAPI
+  
+  WebClient --> VoiceUI : contains
+  WebClient --> OrderUI : contains
+  WebClient --> AdminUI : contains
+  WebClient --> EmpUI : contains
+  VoiceUI --> SpeechAPI : uses
+}
+
+package "서버 측면" {
+  component [Spring Boot Application Server] as AppServer
+  component [REST API Gateway] as APIGateway
+  component [Authentication Filter] as AuthFilter
+  component [CORS Handler] as CORS
+  
+  AppServer --> APIGateway : contains
+  AppServer --> AuthFilter : contains
+  AppServer --> CORS : contains
+  APIGateway --> AuthFilter : filters
+  APIGateway --> CORS : handles
+}
+
+' ============================================
+' 파이프-필터 아키텍처 (요청 처리 파이프라인)
+' ============================================
+package "요청 처리 파이프라인" {
+  component [HTTP Request] as HTTPReq
+  component [CORS Filter] as CORSFilter
+  component [JWT Auth Filter] as JWTAuth
+  component [Controller Router] as Router
+  component [Service Layer] as ServiceLayer
+  component [Repository Layer] as RepoLayer
+  component [Database] as DB
+  
+  HTTPReq --> CORSFilter : pipe
+  CORSFilter --> JWTAuth : pipe
+  JWTAuth --> Router : pipe
+  Router --> ServiceLayer : pipe
+  ServiceLayer --> RepoLayer : pipe
+  RepoLayer --> DB : pipe
+}
+
+' ============================================
+' 이벤트 중심 아키텍처
+' ============================================
+package "이벤트 처리 컴포넌트" {
+  component [Order Created Event] as OrderEvent
+  component [Payment Processed Event] as PaymentEvent
+  component [Inventory Updated Event] as InventoryEvent
+  component [Schedule Created Event] as ScheduleEvent
+  component [Status Changed Event] as StatusEvent
+  
+  component [Order Service] as OrderService
+  component [Payment Service] as PaymentService
+  component [Inventory Service] as InventoryService
+  component [Scheduling Service] as SchedulingService
+  component [Notification Service] as NotificationService
+}
+
+OrderEvent --> PaymentService : triggers
+PaymentEvent --> InventoryService : triggers
+PaymentEvent --> SchedulingService : triggers
+InventoryEvent --> OrderService : notifies
+ScheduleEvent --> NotificationService : notifies
+StatusEvent --> NotificationService : notifies
+
+' ============================================
+' 리파지토리 패턴 컴포넌트
+' ============================================
+package "데이터 접근 계층" {
+  component [Repository Interface] as RepoInterface
+  component [User Repository] as UserRepo
+  component [Order Repository] as OrderRepo
+  component [Inventory Repository] as InvRepo
+  component [Schedule Repository] as ScheduleRepo
+  
+  component [Main Database] as MainDB
+  component [Order Database] as OrderDB
+  component [Inventory Database] as InvDB
+  component [Schedule Database] as ScheduleDB
+}
+
+RepoInterface <|.. UserRepo : implements
+RepoInterface <|.. OrderRepo : implements
+RepoInterface <|.. InvRepo : implements
+RepoInterface <|.. ScheduleRepo : implements
+
+UserRepo --> MainDB : queries
+OrderRepo --> OrderDB : queries
+InvRepo --> InvDB : queries
+ScheduleRepo --> ScheduleDB : queries
+
+' ============================================
+' 출판-구독 패턴 (음성 주문 시스템)
+' ============================================
+package "음성 주문 출판-구독" {
+  component [Voice Input Publisher] as VoicePub
+  component [Voice Message Broker] as VoiceBroker
+  component [Transcription Subscriber] as TransSub
+  component [Intent Recognition Subscriber] as IntentSub
+  component [Order Builder Subscriber] as OrderSub
+  component [Groq API Service] as GroqAPI
+}
+
+VoicePub --> VoiceBroker : publishes
+VoiceBroker --> TransSub : subscribes
+VoiceBroker --> IntentSub : subscribes
+VoiceBroker --> OrderSub : subscribes
+TransSub --> GroqAPI : uses
+IntentSub --> GroqAPI : uses
+OrderSub --> OrderService : uses
+
+' ============================================
+' 컴포넌트 간 상호작용
+' ============================================
+WebClient --> APIGateway : HTTP/REST
+APIGateway --> Router : routes
+Router --> ServiceLayer : delegates
+
+OrderService --> OrderRepo : uses
+PaymentService --> OrderService : collaborates
+InventoryService --> InvRepo : uses
+SchedulingService --> ScheduleRepo : uses
+
+' ============================================
+' 외부 서비스 컴포넌트
+' ============================================
+package "외부 서비스" {
+  component [Groq LLM API] as GroqExt
+  component [Groq HTTPS Endpoint] as GroqEndpoint
+  component [JWT Token Service] as JWTService
+  component [Inventory Scheduler] as InvScheduler
+  component [Voice Order Service] as VoiceService
+}
+
+VoiceService --> GroqEndpoint : calls
+GroqEndpoint --> GroqExt : routes to
+AuthFilter --> JWTService : validates
+InvScheduler --> InvDB : updates
+
+@enduml
+
+
+@startuml 할당_측면_다이어그램
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam componentFontSize 12
+skinparam packageFontSize 14
+skinparam roundcorner 10
+skinparam shadowing true
+
+title 할당 측면 다이어그램 - 배치, 설치, 작업 할당 구현, 데이터 저장
+
+' ============================================
+' 배치 환경 (Deployment Environment)
+' ============================================
+node "프로덕션 서버 (Production Server)" {
+  component [Spring Boot Application] as SpringApp
+  port "5000" as AppPort
+  component [JVM Runtime] as JVM
+  component [Embedded Tomcat] as Tomcat
+  component [Static Files Server] as StaticServer
+  component [React Build Artifacts] as ReactBuild
+  
+  SpringApp --> AppPort : listens on
+  SpringApp --> JVM : runs on
+  SpringApp --> Tomcat : embedded
+}
+
+node "개발 환경 (Development Environment)" {
+  component [React Dev Server] as ReactDev
+  component [Spring Boot DevTools] as DevTools
+  component [Hot Reload Module] as HotReload
+}
+
+' ============================================
+' 데이터 저장소 할당 (Data Storage Allocation)
+' ============================================
+node "데이터베이스 서버 (Database Storage)" {
+  database "mrdabak.db\n(Users, Menu, Dinner Types)" as MainDB
+  database "orders.db\n(Orders, Items, Change Requests)" as OrderDB
+  database "inventory.db\n(Stock, Reservations)" as InvDB
+  database "schedule.db\n(Deliveries, Assignments)" as ScheduleDB
+}
+
+' ============================================
+' 작업 할당 구현 (Work Assignment Implementation)
+' ============================================
+node "작업 스레드 할당" {
+  component [HTTP Request Thread Pool] as ThreadPool
+  component [Request Handler Thread 1] as Thread1
+  component [Request Handler Thread 2] as Thread2
+  component [Request Handler Thread N] as ThreadN
+  component [Scheduler Thread] as SchedulerThread
+  component [Background Task Executor] as BackgroundTasks
+  
+  ThreadPool --> Thread1 : contains
+  ThreadPool --> Thread2 : contains
+  ThreadPool --> ThreadN : contains
+}
+
+component [Inventory Reset Scheduler] as InvScheduler
+component [Order Status Updater] as StatusUpdater
+component [Payment Processor] as PaymentProcessor
+
+SchedulerThread --> InvScheduler : executes
+BackgroundTasks --> StatusUpdater : executes
+BackgroundTasks --> PaymentProcessor : executes
+
+' ============================================
+' 설치 및 배포 단위
+' ============================================
+node "배포 아티팩트 (Deployment Artifacts)" {
+  artifact "dinner-service.jar\n(Java Classes, Libraries,\nConfig, Static Resources)" as JARFile
+  artifact "React Build Files\n(index.html, JS Bundles,\nCSS, Images)" as ReactFiles
+  artifact "Database Files\n(mrdabak.db, orders.db,\ninventory.db, schedule.db)" as DBFiles
+}
+
+' ============================================
+' 하드웨어 리소스 할당
+' ============================================
+node "시스템 리소스 (System Resources)" {
+  component [CPU Cores] as CPU
+  component "Memory Heap\n(JVM Heap, DB Cache, Thread Stacks)" as Memory
+  component "Disk Storage\n(Application, Database, Log Files)" as Disk
+  component [Network Interface] as Network
+  port "5000" as NetPort
+  
+  Network --> NetPort : binds to
+}
+
+' ============================================
+' 컴포넌트 배치 관계
+' ============================================
+SpringApp --> MainDB : connects to
+SpringApp --> OrderDB : connects to
+SpringApp --> InvDB : connects to
+SpringApp --> ScheduleDB : connects to
+
+StaticServer --> ReactBuild : serves
+ReactDev --> HotReload : uses
+
+JVM --> CPU : uses
+JVM --> Memory : allocates
+JVM --> Disk : reads/writes
+Tomcat --> Network : uses
+
+ThreadPool --> SpringApp : belongs to
+SchedulerThread --> SpringApp : belongs to
+BackgroundTasks --> SpringApp : belongs to
+
+JARFile --> SpringApp : deploys
+ReactFiles --> StaticServer : serves
+DBFiles --> MainDB : stores
+DBFiles --> OrderDB : stores
+DBFiles --> InvDB : stores
+DBFiles --> ScheduleDB : stores
+
+' ============================================
+' 외부 서비스 할당
+' ============================================
+cloud "외부 API 서비스" {
+  component [Groq API Server] as GroqServer
+  component [HTTPS Endpoint] as GroqEndpoint
+}
+
+component [Voice Order Service] as VoiceService
+VoiceService --> GroqEndpoint : calls
+GroqEndpoint --> GroqServer : routes to
+
+' ============================================
+' 환경 변수 및 설정 할당
+' ============================================
+component [Configuration Files] as ConfigFiles
+component [application.properties] as AppProps
+component [Environment Variables] as EnvVars
+
+ConfigFiles --> AppProps : contains
+ConfigFiles --> EnvVars : contains
+
+AppProps --> SpringApp : configures
+EnvVars --> SpringApp : configures
+AppProps --> MainDB : configures
+AppProps --> OrderDB : configures
+AppProps --> InvDB : configures
+AppProps --> ScheduleDB : configures
+
+@enduml
+

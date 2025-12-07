@@ -1,0 +1,20 @@
+@startuml UC5: Manage Orders - List Orders
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Order Management ==
+
+User -> System: Access Order Management Page
+System -> Server: Request Order List
+Server -> Server: Retrieve Orders
+Server -> Server: Retrieve User Information
+Server -> System: Order List Transfer
+System -> User: Display Order List
+
+@enduml

@@ -1,0 +1,22 @@
+@startuml UC6: Reservation Change - Create Request Deadline Passed
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Create Change Request ==
+
+User -> System: Press "Order Change Request" Button
+System -> Server: Request Create Change Request
+Server -> Server: Check Order Ownership
+Server -> Server: Check Change Deadline\n(3 days before delivery)
+Server -> Server: Deadline Passed
+
+Server -> System: Deadline Passed Error
+System -> User: Display Error Message\n("Changes can only be made\n3 days before delivery")
+
+@enduml

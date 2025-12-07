@@ -1,0 +1,55 @@
+@startuml
+!theme plain
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+}
+
+left to right direction
+
+actor "고객" as Customer
+actor "관리자" as Admin
+actor "직원" as Employee
+
+rectangle "주문 시스템" {
+  usecase "1. 주문 하기" as UC1
+  usecase "2. 주문 내역 조회" as UC2
+  usecase "5. 주문 관리" as UC5
+}
+
+rectangle "재고 시스템" {
+  usecase "3. 재고 확인" as UC3
+}
+
+rectangle "스케줄 시스템" {
+  usecase "4. 스케줄 조회" as UC4
+}
+
+rectangle "예약 관리 시스템" {
+  usecase "6. 예약 변경 요청 관리" as UC6
+}
+
+rectangle "계정 관리 시스템" {
+  usecase "7. 계정 관리" as UC7
+}
+
+' 고객 연결
+Customer --> UC1
+Customer --> UC2
+Customer --> UC6
+
+' 관리자 연결
+Admin --> UC5
+Admin --> UC3
+Admin --> UC4
+Admin --> UC6
+Admin --> UC7
+
+' 직원 연결
+Employee --> UC5
+Employee --> UC3
+Employee --> UC4
+
+@enduml

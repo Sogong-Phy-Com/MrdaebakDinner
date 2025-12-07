@@ -1,0 +1,23 @@
+@startuml UC6: Reservation Change - Admin Approve Normal
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Approve Change Request ==
+
+User -> System: Press "Approve Change Request" Button
+System -> Server: Request Approve Change Request
+Server -> Server: Check Change Request Status
+Server -> Server: Process Additional Charge or Refund
+Server -> Server: Update Order Information
+Server -> Server: Adjust Inventory
+Server -> Server: Update Change Request Status to Approved
+Server -> System: Approval Complete
+System -> User: Display Approval Complete Message
+
+@enduml

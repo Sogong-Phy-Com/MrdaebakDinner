@@ -1,0 +1,20 @@
+@startuml UC3: Check Inventory - List Inventory
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Inventory Management ==
+
+User -> System: Access Inventory Management Page
+System -> Server: Request Inventory List
+Server -> Server: Calculate Inventory Snapshots
+Server -> Server: Calculate Reserved Quantities
+Server -> System: Inventory List Transfer
+System -> User: Display Inventory List\n(Capacity, Reserved, Remaining, Order Quantity)
+
+@enduml

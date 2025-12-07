@@ -1,0 +1,287 @@
+@startuml
+!theme plain
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam componentFontSize 11
+skinparam packageFontSize 14
+skinparam roundcorner 10
+skinparam shadowing true
+skinparam arrowColor #333333
+skinparam packageBorderColor #000000
+
+title System Architecture Diagram - Mr. DaeBak Dinner Service
+
+' ============================================
+' Presentation Layer
+' ============================================
+package "Presentation Layer" {
+  package "React Frontend" {
+    component [Customer Pages] as CustomerPages
+    component [Admin Pages] as AdminPages
+    component [Employee Pages] as EmployeePages
+    component [Voice Order UI] as VoiceUI
+    component [Common Components] as CommonComponents
+  }
+  
+  package "Browser APIs" {
+    component [Web Speech API] as SpeechAPI
+    component [Local Storage] as LocalStorage
+  }
+  
+  package "State Management" {
+    component [Auth Context] as AuthContext
+    component [React Router] as Router
+  }
+}
+
+' ============================================
+' Application Layer
+' ============================================
+package "Application Layer" {
+  package "REST Controllers" {
+    component [Order Controller] as OrderCtrl
+    component [Auth Controller] as AuthCtrl
+    component [Admin Controller] as AdminCtrl
+    component [Employee Controller] as EmployeeCtrl
+    component [Menu Controller] as MenuCtrl
+    component [Inventory Controller] as InvCtrl
+    component [Payment Controller] as PaymentCtrl
+    component [Voice Order Controller] as VoiceCtrl
+    component [Change Request Controller] as ChangeCtrl
+    component [Health Controller] as HealthCtrl
+  }
+  
+  package "Business Services" {
+    component [Order Service] as OrderService
+    component [Auth Service] as AuthService
+    component [Payment Service] as PaymentService
+    component [Inventory Service] as InventoryService
+    component [Delivery Scheduling Service] as ScheduleService
+    component [Order Change Request Service] as ChangeService
+    component [JWT Service] as JwtService
+    component [Travel Time Estimator] as TravelService
+  }
+  
+  package "Voice Services" {
+    component [Voice Order Session Service] as VoiceSessionService
+    component [Voice Conversation Service] as VoiceConvService
+    component [Voice Order Checkout Service] as VoiceCheckoutService
+    component [Voice Menu Catalog Service] as VoiceMenuService
+    component [Voice Order Assistant Client] as VoiceClient
+    component [Voice Order Mapper] as VoiceMapper
+    component [Voice Order State Merger] as VoiceStateMerger
+  }
+  
+  package "DTO Layer" {
+    component [Request DTOs] as RequestDTOs
+    component [Response DTOs] as ResponseDTOs
+    component [Transfer Objects] as TransferObjects
+  }
+}
+
+' ============================================
+' Domain Layer
+' ============================================
+package "Domain Layer" {
+  package "Domain Models" {
+    component [User] as UserModel
+    component [Order] as OrderModel
+    component [OrderItem] as OrderItemModel
+    component [OrderChangeRequest] as ChangeRequestModel
+    component [MenuItem] as MenuItemModel
+    component [DinnerType] as DinnerTypeModel
+    component [MenuInventory] as InventoryModel
+    component [InventoryReservation] as InventoryReservationModel
+    component [DeliverySchedule] as ScheduleModel
+    component [EmployeeWorkAssignment] as WorkAssignmentModel
+    component [VoiceOrderSession] as VoiceSessionModel
+    component [VoiceOrderState] as VoiceStateModel
+  }
+  
+  package "Repository Interfaces" {
+    component [User Repository] as UserRepo
+    component [Order Repository] as OrderRepo
+    component [OrderItem Repository] as OrderItemRepo
+    component [OrderChangeRequest Repository] as ChangeRequestRepo
+    component [MenuItem Repository] as MenuItemRepo
+    component [Inventory Repository] as InvRepo
+    component [Schedule Repository] as ScheduleRepo
+    component [Voice Session Repository] as VoiceRepo
+  }
+}
+
+' ============================================
+' Infrastructure Layer
+' ============================================
+package "Infrastructure Layer" {
+  package "Configuration" {
+    component [Security Config] as SecurityConfig
+    component [Web Config] as WebConfig
+    component [CORS Config] as CORSConfig
+    component [JWT Authentication Filter] as JwtFilter
+  }
+  
+  package "Database Configuration" {
+    component [Main Database Config] as MainDBConfig
+    component [Order Database Config] as OrderDBConfig
+    component [Inventory Database Config] as InvDBConfig
+    component [Schedule Database Config] as ScheduleDBConfig
+    component [Database Directory Initializer] as DBInit
+  }
+  
+  package "Scheduling" {
+    component [Inventory Reset Scheduler] as InvScheduler
+    component [Cron Jobs] as CronJobs
+  }
+  
+  package "Utilities" {
+    component [Delivery Time Utils] as DeliveryUtils
+    component [Privacy Masking Util] as PrivacyUtil
+    component [Domain Vocabulary Normalizer] as VocabNormalizer
+    component [Relative Date Parser] as DateParser
+  }
+}
+
+' ============================================
+' Persistence Layer
+' ============================================
+package "Persistence Layer" {
+  database "Main Database\n(mrdabak.db)\n\nTables:\n- users\n- dinner_types\n- menu_items\n- dinner_menu_items" as MainDB
+  
+  database "Order Database\n(orders.db)\n\nTables:\n- orders\n- order_items\n- order_change_requests\n- order_change_request_items" as OrderDB
+  
+  database "Inventory Database\n(inventory.db)\n\nTables:\n- menu_inventory\n- inventory_reservations" as InvDB
+  
+  database "Schedule Database\n(schedule.db)\n\nTables:\n- delivery_schedules\n- employee_work_assignments" as ScheduleDB
+}
+
+' ============================================
+' External Services
+' ============================================
+cloud "External Services" {
+  component [Groq LLM API\n\nProvides:\n- Voice transcription\n- Intent recognition\n- Natural language processing] as GroqAPI
+}
+
+' ============================================
+' Presentation Layer Connections
+' ============================================
+CustomerPages --> Router
+AdminPages --> Router
+EmployeePages --> Router
+VoiceUI --> SpeechAPI
+VoiceUI --> Router
+CommonComponents --> AuthContext
+AuthContext --> LocalStorage
+
+' ============================================
+' Presentation -> Application Connections
+' ============================================
+CustomerPages --> OrderCtrl : HTTP/REST
+CustomerPages --> AuthCtrl : HTTP/REST
+CustomerPages --> MenuCtrl : HTTP/REST
+AdminPages --> AdminCtrl : HTTP/REST
+EmployeePages --> EmployeeCtrl : HTTP/REST
+VoiceUI --> VoiceCtrl : HTTP/REST
+CustomerPages --> ChangeCtrl : HTTP/REST
+
+' ============================================
+' Application Layer Internal Connections
+' ============================================
+OrderCtrl --> OrderService
+OrderCtrl --> RequestDTOs
+OrderCtrl --> ResponseDTOs
+AuthCtrl --> AuthService
+AdminCtrl --> OrderService
+AdminCtrl --> AuthService
+EmployeeCtrl --> OrderService
+EmployeeCtrl --> InventoryService
+InvCtrl --> InventoryService
+PaymentCtrl --> PaymentService
+VoiceCtrl --> VoiceSessionService
+VoiceCtrl --> VoiceConvService
+ChangeCtrl --> ChangeService
+
+OrderService --> PaymentService
+OrderService --> InventoryService
+OrderService --> ScheduleService
+OrderService --> ChangeService
+AuthService --> JwtService
+InventoryService --> ScheduleService
+ChangeService --> OrderService
+ChangeService --> PaymentService
+
+VoiceSessionService --> VoiceConvService
+VoiceConvService --> VoiceClient
+VoiceConvService --> VoiceMenuService
+VoiceConvService --> VoiceStateMerger
+VoiceCheckoutService --> VoiceMapper
+VoiceCheckoutService --> OrderService
+VoiceClient --> GroqAPI : HTTPS
+VoiceMenuService --> MenuItemRepo
+
+' ============================================
+' Application -> Domain Connections
+' ============================================
+OrderService --> OrderRepo
+OrderService --> OrderItemRepo
+OrderService --> OrderModel
+OrderService --> OrderItemModel
+AuthService --> UserRepo
+AuthService --> UserModel
+InventoryService --> InvRepo
+InventoryService --> InventoryModel
+InventoryService --> InventoryReservationModel
+ScheduleService --> ScheduleRepo
+ScheduleService --> ScheduleModel
+ChangeService --> ChangeRequestRepo
+ChangeService --> ChangeRequestModel
+VoiceSessionService --> VoiceRepo
+VoiceSessionService --> VoiceSessionModel
+
+' ============================================
+' Domain -> Persistence Connections
+' ============================================
+UserRepo --> MainDB : JDBC/SQLite
+MenuItemRepo --> MainDB : JDBC/SQLite
+OrderRepo --> OrderDB : JDBC/SQLite
+OrderItemRepo --> OrderDB : JDBC/SQLite
+ChangeRequestRepo --> OrderDB : JDBC/SQLite
+InvRepo --> InvDB : JDBC/SQLite
+ScheduleRepo --> ScheduleDB : JDBC/SQLite
+VoiceRepo --> MainDB : JDBC/SQLite
+
+' ============================================
+' Infrastructure Connections
+' ============================================
+SecurityConfig --> JwtFilter
+SecurityConfig --> JwtService
+WebConfig --> CORSConfig
+JwtFilter --> JwtService
+
+MainDBConfig --> MainDB : manages
+OrderDBConfig --> OrderDB : manages
+InvDBConfig --> InvDB : manages
+ScheduleDBConfig --> ScheduleDB : manages
+DBInit --> MainDB : initializes
+DBInit --> OrderDB : initializes
+DBInit --> InvDB : initializes
+DBInit --> ScheduleDB : initializes
+
+InvScheduler --> InvDB : updates
+InvScheduler --> InventoryService
+CronJobs --> InvScheduler
+
+DeliveryUtils --> ScheduleService
+PrivacyUtil --> ResponseDTOs
+VocabNormalizer --> VoiceConvService
+DateParser --> VoiceConvService
+
+' ============================================
+' Service -> Repository Connections
+' ============================================
+OrderService --> UserRepo
+ScheduleService --> UserRepo
+
+@enduml
+

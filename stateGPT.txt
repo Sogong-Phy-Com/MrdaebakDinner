@@ -1,0 +1,305 @@
+@startuml OrderStateDiagram
+!theme plain
+skinparam state {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+
+title Order State Diagram - Mr. DaeBak Dinner Service
+
+[*] --> Pending: createOrder()\n[action: set paymentStatus=pending,\nadminApprovalStatus=PENDING]
+
+state "Pending" as Pending {
+  state "AdminApproval_PENDING" as AdminPending
+  state "AdminApproval_APPROVED" as AdminApproved
+}
+
+Pending : adminApprovalStatus = PENDING
+Pending : status = pending
+Pending : paymentStatus = pending
+
+Pending --> AdminPending: [initial]
+
+AdminPending --> AdminApproved: adminApproveOrder()\n[guard: inventory available]\n[action: create InventoryReservation,\ncreate DeliverySchedule]
+
+AdminPending --> Cancelled: adminRejectOrder()\n[action: process refund,\nrelease resources]
+
+AdminApproved --> Cancelled: cancelOrder()\n[guard: before cooking starts]\n[action: release InventoryReservation,\ncancel DeliverySchedule]
+
+state "Cooking" as Cooking {
+  Cooking : status = cooking
+  Cooking : adminApprovalStatus = APPROVED
+}
+
+AdminApproved --> Cooking: startCooking()\n[guard: adminApprovalStatus == APPROVED\nstatus == pending]\n[action: consume InventoryReservation,\nreduce capacity_per_window]
+
+state "OutForDelivery" as OutForDelivery {
+  OutForDelivery : status = out_for_delivery
+  OutForDelivery : adminApprovalStatus = APPROVED
+}
+
+Cooking --> OutForDelivery: startDelivery()\n[guard: status == cooking]
+
+state "Delivered" as Delivered {
+  Delivered : status = delivered
+  Delivered : adminApprovalStatus = APPROVED
+}
+
+OutForDelivery --> Delivered: completeDelivery()\n[guard: status == out_for_delivery]\n[action: notify customer]
+
+Cooking --> Cancelled: cancelOrder()\n[guard: after cooking started]\n[action: inventory already consumed,\ncancel DeliverySchedule]
+
+OutForDelivery --> Cancelled: cancelOrder()\n[guard: during delivery]\n[action: inventory already consumed]
+
+state "Cancelled" as Cancelled {
+  Cancelled : status = cancelled
+}
+
+Cancelled --> [*]
+
+Delivered --> [*]
+
+state "Payment States" as PaymentStates {
+  state "PaymentPending" as PaymentPending
+  state "PaymentPaid" as PaymentPaid
+  state "PaymentFailed" as PaymentFailed
+}
+
+PaymentPending: paymentStatus = pending
+PaymentPaid: paymentStatus = paid
+PaymentFailed: paymentStatus = failed
+
+PaymentPending --> PaymentPaid: processPayment()\n[action: set paymentMethod]
+
+PaymentPending --> PaymentFailed: paymentFailure()\n[action: handle payment error]
+
+PaymentFailed --> PaymentPaid: retryPayment()\n[action: retry payment processing]
+
+note right of Pending
+  주문 생성 시:
+  - paymentStatus = "pending"
+  - adminApprovalStatus = "PENDING"
+  - status = "pending"
+end note
+
+note right of AdminApproved
+  관리자 승인 후:
+  - InventoryReservation 생성 (consumed=false)
+  - DeliverySchedule 생성
+  - 주문 수정 가능 (배달 1일 전까지)
+end note
+
+note right of Cooking
+  조리 시작 시:
+  - InventoryReservation.consumed = true
+  - capacity_per_window 차감
+  - 실제 재고 소비
+end note
+
+note right of Delivered
+  배달 완료:
+  - 최종 상태
+  - 재고는 이미 소비됨
+end note
+
+note right of Cancelled
+  취소 가능 시점:
+  1. 관리자 거부 시
+  2. 승인 후 조리 전
+  3. 조리 시작 후 (재고는 이미 소비됨)
+  4. 배달 중 (재고는 이미 소비됨)
+end note
+
+@enduml
+
+@startuml OrderChangeRequestStateDiagram
+!theme plain
+skinparam state {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+
+title OrderChangeRequest State Diagram - Mr. DaeBak Dinner Service
+
+[*] --> REQUESTED: createChangeRequest()\n[guard: order.canModify() == true]\n[action: validate inventory,\ncalculate price difference,\ncalculate change fee]
+
+state "REQUESTED" as REQUESTED {
+  REQUESTED : status = REQUESTED
+  REQUESTED : requestedAt = now()
+}
+
+REQUESTED --> REQUESTED: updateChangeRequest()\n[guard: status in ACTIVE_REQUEST_STATUSES]\n[action: recalculate price,\nrevalidate inventory]
+
+REQUESTED --> APPROVED: approve()\n[guard: inventory available,\nextraChargeAmount == 0]\n[action: replace InventoryReservation,\nupdate Order items,\nupdate Order details,\ncancel DeliverySchedule]
+
+REQUESTED --> APPROVED: approve()\n[guard: inventory available,\nextraChargeAmount > 0,\npayment successful]\n[action: chargeAdditionalAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+REQUESTED --> APPROVED: approve()\n[guard: inventory available,\nextraChargeAmount < 0,\nrefund successful]\n[action: refundAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+REQUESTED --> PAYMENT_FAILED: approve()\n[guard: inventory available,\nextraChargeAmount > 0,\npayment failed]\n[action: set status = PAYMENT_FAILED,\nsave admin comment]
+
+REQUESTED --> REFUND_FAILED: approve()\n[guard: inventory available,\nextraChargeAmount < 0,\nrefund failed]\n[action: set status = REFUND_FAILED,\nsave admin comment]
+
+REQUESTED --> REJECTED: reject()\n[guard: status in ACTIVE_REQUEST_STATUSES]\n[action: set rejectedAt = now(),\nsave admin comment]
+
+state "PAYMENT_FAILED" as PAYMENT_FAILED {
+  PAYMENT_FAILED : status = PAYMENT_FAILED
+  PAYMENT_FAILED : requires retry
+}
+
+PAYMENT_FAILED --> REQUESTED: updateChangeRequest()\n[guard: customer wants to retry]\n[action: allow modification]
+
+PAYMENT_FAILED --> APPROVED: retryPayment()\n[guard: payment successful]\n[action: chargeAdditionalAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+PAYMENT_FAILED --> REJECTED: reject()\n[guard: admin rejects]\n[action: set rejectedAt = now()]
+
+state "REFUND_FAILED" as REFUND_FAILED {
+  REFUND_FAILED : status = REFUND_FAILED
+  REFUND_FAILED : requires retry
+}
+
+REFUND_FAILED --> REQUESTED: updateChangeRequest()\n[guard: customer wants to retry]\n[action: allow modification]
+
+REFUND_FAILED --> APPROVED: retryRefund()\n[guard: refund successful]\n[action: refundAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+REFUND_FAILED --> REJECTED: reject()\n[guard: admin rejects]\n[action: set rejectedAt = now()]
+
+state "APPROVED" as APPROVED {
+  APPROVED : status = APPROVED
+  APPROVED : approvedAt = now()
+  APPROVED : final state
+}
+
+state "REJECTED" as REJECTED {
+  REJECTED : status = REJECTED
+  REJECTED : rejectedAt = now()
+  REJECTED : final state
+}
+
+APPROVED --> [*]
+
+REJECTED --> [*]
+
+note right of REQUESTED
+  활성 상태 (ACTIVE_REQUEST_STATUSES):
+  - REQUESTED
+  - PAYMENT_FAILED
+  - REFUND_FAILED
+  
+  활성 상태일 때만 수정 가능
+end note
+
+note right of APPROVED
+  승인 시 프로세스:
+  1. 재고 검증
+  2. 가격 차이 계산 (extraChargeAmount)
+  3. extraChargeAmount > 0: 추가 결제
+  4. extraChargeAmount < 0: 환불
+  5. extraChargeAmount == 0: 변경만 수행
+  6. 재고 예약 교체
+  7. 주문 정보 업데이트
+end note
+
+note right of PAYMENT_FAILED
+  추가 결제 실패:
+  - 상태는 PAYMENT_FAILED로 유지
+  - 고객이 재시도 가능
+  - 관리자가 거부 가능
+end note
+
+note right of REFUND_FAILED
+  환불 실패:
+  - 상태는 REFUND_FAILED로 유지
+  - 고객이 재시도 가능
+  - 관리자가 거부 가능
+end note
+
+note right of REJECTED
+  거부 시:
+  - 변경 요청 거부
+  - 원래 주문은 그대로 유지
+  - 추가 액션 없음
+end note
+
+@enduml
+
+@startuml DeliveryScheduleStateDiagram
+!theme plain
+skinparam state {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+
+title DeliverySchedule State Diagram - Mr. DaeBak Dinner Service
+
+[*] --> SCHEDULED: commitAssignmentForOrder()\n[action: create DeliverySchedule,\nset employeeId,\nset deliveryAddress,\nset departureTime,\nset arrivalTime,\nset returnTime]
+
+state "SCHEDULED" as SCHEDULED {
+  SCHEDULED : status = SCHEDULED
+  SCHEDULED : order assigned
+  SCHEDULED : delivery time scheduled
+}
+
+SCHEDULED --> IN_PROGRESS: updateStatus()\n[guard: order status == out_for_delivery]\n[action: set status = IN_PROGRESS]
+
+SCHEDULED --> COMPLETED: updateStatus()\n[guard: order status == delivered]\n[action: set status = COMPLETED]
+
+SCHEDULED --> CANCELLED: cancelScheduleForOrder()\n[guard: order cancelled]\n[action: set status = CANCELLED]
+
+state "IN_PROGRESS" as IN_PROGRESS {
+  IN_PROGRESS : status = IN_PROGRESS
+  IN_PROGRESS : delivery in progress
+}
+
+IN_PROGRESS --> COMPLETED: updateStatus()\n[guard: order status == delivered]\n[action: set status = COMPLETED]
+
+IN_PROGRESS --> CANCELLED: cancelScheduleForOrder()\n[guard: order cancelled during delivery]\n[action: set status = CANCELLED]
+
+state "COMPLETED" as COMPLETED {
+  COMPLETED : status = COMPLETED
+  COMPLETED : delivery completed
+  COMPLETED : final state
+}
+
+state "CANCELLED" as CANCELLED {
+  CANCELLED : status = CANCELLED
+  CANCELLED : schedule cancelled
+  CANCELLED : final state
+}
+
+COMPLETED --> [*]
+
+CANCELLED --> [*]
+
+note right of SCHEDULED
+  스케줄 생성 시:
+  - 관리자 승인 시 생성
+  - 직원 배정됨
+  - 배달 시간 예약됨
+  - 초기 상태 = SCHEDULED
+end note
+
+note right of IN_PROGRESS
+  배달 진행 중:
+  - 주문 상태가 out_for_delivery일 때
+  - 배달 직원이 출발함
+  - 배달 진행 중
+end note
+
+note right of COMPLETED
+  배달 완료:
+  - 주문 상태가 delivered일 때
+  - 최종 상태
+end note
+
+note right of CANCELLED
+  스케줄 취소:
+  - 주문 취소 시
+  - 관리자가 스케줄 취소 시
+  - 최종 상태
+end note
+
+@enduml

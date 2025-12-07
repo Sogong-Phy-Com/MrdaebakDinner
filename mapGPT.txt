@@ -1,0 +1,750 @@
+================================================================================
+미스터 대박 프로젝트 - 패키지별 클래스 관계 맵
+================================================================================
+
+[외부 패키지 - Spring Framework]
+--------------------------------------------------------------------------------
+org.springframework.boot
+  - SpringBootApplication
+    └─> DinnerServiceApplication (메인 애플리케이션)
+  - CommandLineRunner
+    └─> DataInitializer (구현)
+  - autoconfigure.domain.EntityScan
+    └─> DinnerServiceApplication (사용)
+
+org.springframework.web
+  - RestController
+    └─> OrderController, AuthController, AdminController, EmployeeController, 
+        InventoryController, MenuController, PaymentController, 
+        ReservationChangeRequestController, AdminReservationChangeRequestController,
+        VoiceOrderController, HealthController (사용)
+  - RequestMapping, GetMapping, PostMapping, PutMapping, DeleteMapping
+    └─> 모든 Controller 클래스들 (사용)
+
+org.springframework.data.jpa.repository
+  - JpaRepository<T, ID>
+    └─> UserRepository, MenuItemRepository, DinnerTypeRepository, 
+        DinnerMenuItemRepository, OrderRepository, OrderItemRepository,
+        OrderChangeRequestRepository, OrderChangeRequestItemRepository,
+        MenuInventoryRepository, InventoryReservationRepository,
+        DeliveryScheduleRepository, EmployeeWorkAssignmentRepository (상속)
+
+org.springframework.security
+  - SecurityFilterChain
+    └─> SecurityConfig (구성)
+  - PasswordEncoder
+    └─> SecurityConfig (Bean 생성), AuthService, AdminController (사용)
+  - Authentication
+    └─> 모든 Controller 클래스들 (사용)
+  - UsernamePasswordAuthenticationFilter
+    └─> SecurityConfig (사용)
+
+org.springframework.transaction
+  - PlatformTransactionManager
+    └─> OrderService, 각 DatabaseConfig (사용)
+  - TransactionTemplate
+    └─> OrderService (사용)
+
+org.springframework.scheduling
+  - EnableScheduling
+    └─> DinnerServiceApplication (사용)
+  - Scheduled
+    └─> InventoryResetScheduler (사용)
+
+org.springframework.http
+  - ResponseEntity
+    └─> 모든 Controller 클래스들 (사용)
+  - HttpStatus
+    └─> 모든 Controller 클래스들 (사용)
+
+org.springframework.web.client
+  - RestTemplate
+    └─> VoiceOrderAssistantClient (사용)
+
+org.springframework.beans.factory.annotation
+  - Value, Qualifier, Autowired
+    └─> 모든 Service, Controller, Config 클래스들 (사용)
+
+org.springframework.stereotype
+  - Service
+    └─> OrderService, AuthService, InventoryService, PaymentService,
+        JwtService, DeliverySchedulingService, OrderChangeRequestService,
+        TravelTimeEstimator, VoiceConversationService, VoiceOrderSessionService,
+        VoiceOrderMapper, VoiceOrderSummaryMapper, VoiceOrderStateMerger,
+        VoiceOrderAssistantClient, VoiceOrderCheckoutService, VoiceMenuCatalogService
+  - Component
+    └─> JwtAuthenticationFilter, DataInitializer, DatabaseDirectoryInitializer,
+        DomainVocabularyNormalizer, InventoryResetScheduler
+  - Repository
+    └─> 모든 Repository 인터페이스들
+  - Configuration
+    └─> SecurityConfig, WebConfig, MainDatabaseConfig, OrderDatabaseConfig,
+        ScheduleDatabaseConfig, InventoryDatabaseConfig, VoiceOrderHttpConfig
+
+org.springframework.context.annotation
+  - Bean, Primary
+    └─> 모든 Config 클래스들 (사용)
+
+jakarta.persistence
+  - Entity
+    └─> User, Order, OrderItem, OrderChangeRequest, OrderChangeRequestItem,
+        MenuItem, MenuInventory, InventoryReservation, DeliverySchedule,
+        EmployeeWorkAssignment, DinnerType, DinnerMenuItem (사용)
+  - Table, Column, Id, GeneratedValue, OneToMany, ManyToOne, PrePersist, PreUpdate
+    └─> 모든 Entity 클래스들 (사용)
+
+jakarta.validation
+  - Valid, NotBlank, Email, Size
+    └─> DTO 클래스들, Controller 메서드들 (사용)
+
+io.jsonwebtoken
+  - Jwts, Claims
+    └─> JwtService (사용)
+
+org.apache.poi
+  - Workbook, Sheet, Row, Cell
+    └─> (Excel 처리용, 현재 사용 여부 확인 필요)
+
+org.xerial.sqlite
+  - SQLiteDataSource
+    └─> 모든 DatabaseConfig 클래스들 (사용)
+
+org.hibernate
+  - SQLiteDialect
+    └─> 모든 DatabaseConfig 클래스들 (사용)
+
+com.fasterxml.jackson
+  - ObjectMapper, JsonNode
+    └─> VoiceOrderAssistantClient (사용)
+
+lombok
+  - Data, NoArgsConstructor, AllArgsConstructor, Builder
+    └─> 모든 Entity, DTO 클래스들 (사용)
+
+
+================================================================================
+[내부 패키지 - com.mrdabak.dinnerservice]
+================================================================================
+
+[1. com.mrdabak.dinnerservice (루트 패키지)]
+--------------------------------------------------------------------------------
+DinnerServiceApplication
+  - @SpringBootApplication
+  - @EntityScan(basePackages = "com.mrdabak.dinnerservice.model")
+  - @EnableScheduling
+  - 의존성: Spring Boot Framework
+
+
+[2. com.mrdabak.dinnerservice.model (엔티티 패키지)]
+--------------------------------------------------------------------------------
+User
+  - @Entity, @Table(name = "users")
+  - 관계: 
+    * Order.userId (외래키 관계)
+    * OrderChangeRequest.userId (외래키 관계)
+    * DeliverySchedule.deliveryEmployeeId (외래키 관계)
+    * EmployeeWorkAssignment.employeeId (외래키 관계)
+
+Order
+  - @Entity, @Table(name = "orders")
+  - 관계:
+    * OrderItem.orderId (1:N 관계)
+    * OrderChangeRequest.orderId (1:N 관계)
+    * DeliverySchedule.orderId (1:1 관계)
+    * InventoryReservation.orderId (1:N 관계)
+  - 의존성: DeliveryTimeUtils (util 패키지)
+
+OrderItem
+  - @Entity, @Table(name = "order_items")
+  - 관계:
+    * Order.orderId (N:1 관계)
+    * MenuItem.menuItemId (외래키 관계)
+
+OrderChangeRequest
+  - @Entity, @Table(name = "order_change_requests")
+  - 관계:
+    * Order.orderId (N:1 관계)
+    * User.userId (외래키 관계)
+    * OrderChangeRequestItem.changeRequest (1:N 관계, @OneToMany)
+  - 의존성: OrderChangeRequestStatus (enum)
+
+OrderChangeRequestItem
+  - @Entity, @Table(name = "order_change_request_items")
+  - 관계:
+    * OrderChangeRequest.changeRequest (N:1 관계, @ManyToOne)
+    * MenuItem.menuItemId (외래키 관계)
+
+MenuItem
+  - @Entity, @Table(name = "menu_items")
+  - 관계:
+    * OrderItem.menuItemId (외래키 관계)
+    * OrderChangeRequestItem.menuItemId (외래키 관계)
+    * MenuInventory.menuItemId (외래키 관계)
+    * InventoryReservation.menuItemId (외래키 관계)
+    * DinnerMenuItem.menuItemId (외래키 관계)
+
+DinnerType
+  - @Entity, @Table(name = "dinner_types")
+  - 관계:
+    * Order.dinnerTypeId (외래키 관계)
+    * OrderChangeRequest.newDinnerTypeId (외래키 관계)
+    * DinnerMenuItem.dinnerTypeId (외래키 관계)
+
+DinnerMenuItem
+  - @Entity, @Table(name = "dinner_menu_items")
+  - 관계:
+    * DinnerType.dinnerTypeId (외래키 관계)
+    * MenuItem.menuItemId (외래키 관계)
+
+MenuInventory
+  - @Entity, @Table(name = "menu_inventory")
+  - 관계:
+    * MenuItem.menuItemId (외래키 관계)
+    * InventoryReservation.menuItemId (외래키 관계)
+
+InventoryReservation
+  - @Entity, @Table(name = "inventory_reservations")
+  - 관계:
+    * Order.orderId (N:1 관계)
+    * MenuItem.menuItemId (외래키 관계)
+    * MenuInventory.menuItemId (외래키 관계)
+
+DeliverySchedule
+  - @Entity, @Table(name = "delivery_schedules")
+  - 관계:
+    * Order.orderId (1:1 관계)
+    * User.deliveryEmployeeId (외래키 관계)
+
+EmployeeWorkAssignment
+  - @Entity, @Table(name = "employee_work_assignments")
+  - 관계:
+    * User.employeeId (외래키 관계)
+    * DeliverySchedule.deliveryEmployeeId (외래키 관계)
+
+OrderChangeRequestStatus (Enum)
+  - REQUESTED, APPROVED, REJECTED
+  - 관계:
+    * OrderChangeRequest.status (사용)
+
+
+[3. com.mrdabak.dinnerservice.repository (리포지토리 패키지)]
+--------------------------------------------------------------------------------
+[3-1. com.mrdabak.dinnerservice.repository (메인 리포지토리)]
+UserRepository
+  - extends JpaRepository<User, Long>
+  - 사용처: AuthService, OrderService, AdminController, OrderController,
+           EmployeeController, ReservationChangeRequestController,
+           AdminReservationChangeRequestController, VoiceOrderAssistantClient
+
+MenuItemRepository
+  - extends JpaRepository<MenuItem, Long>
+  - 사용처: OrderService, InventoryService, MenuController, OrderController,
+           AdminController, VoiceMenuCatalogService
+
+DinnerTypeRepository
+  - extends JpaRepository<DinnerType, Long>
+  - 사용처: OrderService, MenuController, OrderController, AdminController,
+           DataInitializer
+
+DinnerMenuItemRepository
+  - extends JpaRepository<DinnerMenuItem, Long>
+  - 사용처: OrderService, MenuController, OrderController, AdminController
+
+[3-2. com.mrdabak.dinnerservice.repository.order]
+OrderRepository
+  - extends JpaRepository<Order, Long>
+  - 사용처: OrderService, OrderChangeRequestService, PaymentService,
+           AdminController, OrderController, EmployeeController,
+           ReservationChangeRequestController, AdminReservationChangeRequestController,
+           DeliverySchedulingService, VoiceOrderCheckoutService
+
+OrderItemRepository
+  - extends JpaRepository<OrderItem, Long>
+  - 사용처: OrderService, OrderController, AdminController
+
+OrderChangeRequestRepository
+  - extends JpaRepository<OrderChangeRequest, Long>
+  - 사용처: OrderChangeRequestService, ReservationChangeRequestController,
+           AdminReservationChangeRequestController
+
+OrderChangeRequestItemRepository
+  - extends JpaRepository<OrderChangeRequestItem, Long>
+  - 사용처: OrderChangeRequestService
+
+[3-3. com.mrdabak.dinnerservice.repository.inventory]
+MenuInventoryRepository
+  - extends JpaRepository<MenuInventory, Long>
+  - 사용처: InventoryService, InventoryResetScheduler
+
+InventoryReservationRepository
+  - extends JpaRepository<InventoryReservation, Long>
+  - 사용처: InventoryService, OrderService, OrderChangeRequestService,
+           AdminController
+
+[3-4. com.mrdabak.dinnerservice.repository.schedule]
+DeliveryScheduleRepository
+  - extends JpaRepository<DeliverySchedule, Long>
+  - 사용처: DeliverySchedulingService, EmployeeController, AdminController
+
+EmployeeWorkAssignmentRepository
+  - extends JpaRepository<EmployeeWorkAssignment, Long>
+  - 사용처: DeliverySchedulingService, EmployeeController, AdminController
+
+
+[4. com.mrdabak.dinnerservice.service (서비스 패키지)]
+--------------------------------------------------------------------------------
+OrderService
+  - @Service
+  - 의존성:
+    * OrderRepository
+    * OrderItemRepository
+    * DinnerTypeRepository
+    * MenuItemRepository
+    * DinnerMenuItemRepository
+    * InventoryService
+    * DeliverySchedulingService
+    * UserRepository
+    * PlatformTransactionManager (orderTransactionManager)
+  - 사용처: OrderController, AdminController, EmployeeController,
+           PaymentController, VoiceOrderCheckoutService
+
+AuthService
+  - @Service
+  - 의존성:
+    * UserRepository
+    * PasswordEncoder
+    * JwtService
+  - 사용처: AuthController
+
+InventoryService
+  - @Service
+  - 의존성:
+    * MenuInventoryRepository
+    * InventoryReservationRepository
+    * MenuItemRepository
+  - 사용처: OrderService, OrderChangeRequestService, InventoryController,
+           EmployeeController
+
+PaymentService
+  - @Service
+  - 의존성:
+    * OrderRepository
+  - 사용처: PaymentController, OrderChangeRequestService
+
+JwtService
+  - @Service
+  - 의존성: (외부 라이브러리: io.jsonwebtoken)
+  - 사용처: AuthService, JwtAuthenticationFilter, AdminController
+
+DeliverySchedulingService
+  - @Service
+  - 의존성:
+    * OrderRepository
+    * DeliveryScheduleRepository
+    * EmployeeWorkAssignmentRepository
+  - 사용처: OrderService, EmployeeController, AdminController
+
+OrderChangeRequestService
+  - @Service
+  - 의존성:
+    * OrderRepository
+    * OrderChangeRequestRepository
+    * OrderChangeRequestItemRepository
+    * InventoryService
+    * PaymentService
+    * UserRepository
+  - 사용처: ReservationChangeRequestController, AdminReservationChangeRequestController,
+           OrderController
+
+ReservationChangeQuote
+  - @Service (또는 일반 클래스)
+  - 의존성:
+    * OrderRepository
+    * MenuItemRepository
+    * DinnerTypeRepository
+  - 사용처: OrderChangeRequestService
+
+TravelTimeEstimator
+  - @Component
+  - 의존성: (독립적)
+  - 사용처: DeliverySchedulingService
+
+PaymentException
+  - Exception 클래스
+  - 사용처: PaymentService, OrderChangeRequestService
+
+
+[5. com.mrdabak.dinnerservice.controller (컨트롤러 패키지)]
+--------------------------------------------------------------------------------
+OrderController
+  - @RestController, @RequestMapping("/api/orders")
+  - 의존성:
+    * OrderService
+    * OrderItemRepository
+    * MenuItemRepository
+    * OrderChangeRequestService
+    * UserRepository
+    * DinnerTypeRepository
+    * DinnerMenuItemRepository
+    * OrderRepository
+  - 사용: Authentication (Spring Security)
+
+AuthController
+  - @RestController, @RequestMapping("/api/auth")
+  - 의존성:
+    * AuthService
+    * UserRepository
+    * PasswordEncoder
+  - 사용: Authentication (Spring Security)
+
+AdminController
+  - @RestController, @RequestMapping("/api/admin")
+  - 의존성:
+    * UserRepository
+    * OrderRepository
+    * OrderItemRepository
+    * DinnerTypeRepository
+    * DinnerMenuItemRepository
+    * MenuItemRepository
+    * JwtService
+    * DeliverySchedulingService
+    * OrderService
+    * DeliveryScheduleRepository
+    * EmployeeWorkAssignmentRepository
+    * InventoryReservationRepository
+    * PasswordEncoder
+  - 사용: Authentication (Spring Security), @PreAuthorize
+
+EmployeeController
+  - @RestController, @RequestMapping("/api/employee")
+  - 의존성:
+    * OrderRepository
+    * OrderItemRepository
+    * DeliveryScheduleRepository
+    * EmployeeWorkAssignmentRepository
+    * DeliverySchedulingService
+    * OrderService
+    * InventoryService
+  - 사용: Authentication (Spring Security)
+
+InventoryController
+  - @RestController, @RequestMapping("/api/inventory")
+  - 의존성:
+    * InventoryService
+    * MenuItemRepository
+  - 사용: Authentication (Spring Security), @PreAuthorize
+
+MenuController
+  - @RestController, @RequestMapping("/api/menu")
+  - 의존성:
+    * DinnerTypeRepository
+    * DinnerMenuItemRepository
+    * MenuItemRepository
+  - 사용: (인증 불필요)
+
+PaymentController
+  - @RestController, @RequestMapping("/api/payment")
+  - 의존성:
+    * OrderRepository
+    * PaymentService
+  - 사용: Authentication (Spring Security)
+
+ReservationChangeRequestController
+  - @RestController, @RequestMapping("/api/reservations")
+  - 의존성:
+    * OrderChangeRequestService
+    * OrderRepository
+  - 사용: Authentication (Spring Security)
+
+AdminReservationChangeRequestController
+  - @RestController, @RequestMapping("/api/admin/change-requests")
+  - 의존성:
+    * OrderChangeRequestService
+    * OrderChangeRequestRepository
+    * OrderRepository
+  - 사용: Authentication (Spring Security), @PreAuthorize
+
+VoiceOrderController
+  - @RestController, @RequestMapping("/api/voice")
+  - 의존성:
+    * VoiceOrderSessionService
+    * VoiceConversationService
+    * VoiceOrderCheckoutService
+    * VoiceOrderMapper
+  - 사용: Authentication (Spring Security)
+
+HealthController
+  - @RestController, @RequestMapping("/api/health")
+  - 의존성: (없음)
+
+
+[6. com.mrdabak.dinnerservice.dto (DTO 패키지)]
+--------------------------------------------------------------------------------
+AuthRequest
+  - 사용처: AuthController, AdminController
+  - 의존성: jakarta.validation
+
+AuthResponse
+  - 사용처: AuthController, AdminController
+
+OrderRequest
+  - 사용처: OrderController, VoiceOrderCheckoutService
+  - 의존성: OrderItemDto
+
+OrderItemDto
+  - 사용처: OrderRequest, OrderService, InventoryService, VoiceOrderMapper
+
+UserDto
+  - 사용처: AdminController
+
+InventoryRestockRequest
+  - 사용처: InventoryController
+
+ReservationChangeRequestCreateDto
+  - 사용처: ReservationChangeRequestController, OrderChangeRequestService
+
+ReservationChangeRequestDecisionDto
+  - 사용처: AdminReservationChangeRequestController, OrderChangeRequestService
+
+ReservationChangeRequestResponseDto
+  - 사용처: ReservationChangeRequestController, AdminReservationChangeRequestController
+
+ReservationChangeRequestItemResponseDto
+  - 사용처: ReservationChangeRequestResponseDto
+
+
+[7. com.mrdabak.dinnerservice.config (설정 패키지)]
+--------------------------------------------------------------------------------
+SecurityConfig
+  - @Configuration, @EnableWebSecurity, @EnableMethodSecurity
+  - 의존성:
+    * JwtAuthenticationFilter
+  - 구성: SecurityFilterChain, PasswordEncoder, CorsConfigurationSource
+
+JwtAuthenticationFilter
+  - @Component, extends OncePerRequestFilter
+  - 의존성:
+    * JwtService
+    * UserRepository
+  - 사용: SecurityConfig
+
+MainDatabaseConfig
+  - @Configuration, @EnableJpaRepositories
+  - 구성: DataSource (mrdabak.db), EntityManagerFactory, TransactionManager
+  - 엔티티: User, DinnerType, MenuItem, DinnerMenuItem
+
+OrderDatabaseConfig
+  - @Configuration, @EnableJpaRepositories
+  - 구성: DataSource (orders.db), EntityManagerFactory, TransactionManager
+  - 엔티티: Order, OrderItem, OrderChangeRequest, OrderChangeRequestItem
+
+ScheduleDatabaseConfig
+  - @Configuration, @EnableJpaRepositories
+  - 구성: DataSource (schedule.db), EntityManagerFactory, TransactionManager
+  - 엔티티: DeliverySchedule, EmployeeWorkAssignment
+
+InventoryDatabaseConfig
+  - @Configuration, @EnableJpaRepositories
+  - 구성: DataSource (inventory.db), EntityManagerFactory, TransactionManager
+  - 엔티티: MenuInventory, InventoryReservation
+
+DatabaseDirectoryInitializer
+  - @Component
+  - 역할: 데이터베이스 디렉토리 초기화
+
+DataInitializer
+  - @Component, implements CommandLineRunner
+  - 의존성:
+    * 모든 Repository
+    * PasswordEncoder
+  - 역할: 초기 데이터 생성
+
+WebConfig
+  - @Configuration
+  - 구성: CORS 설정
+
+
+[8. com.mrdabak.dinnerservice.util (유틸리티 패키지)]
+--------------------------------------------------------------------------------
+DeliveryTimeUtils
+  - 정적 유틸리티 클래스
+  - 사용처: Order (model), OrderService
+
+PrivacyMaskingUtil
+  - 정적 유틸리티 클래스
+  - 사용처: AdminController
+
+
+[9. com.mrdabak.dinnerservice.scheduler (스케줄러 패키지)]
+--------------------------------------------------------------------------------
+InventoryResetScheduler
+  - @Component
+  - 의존성:
+    * MenuInventoryRepository
+  - 사용: @Scheduled (Spring Scheduling)
+
+
+[10. com.mrdabak.dinnerservice.voice (음성 주문 패키지)]
+--------------------------------------------------------------------------------
+[10-1. com.mrdabak.dinnerservice.voice.model]
+VoiceOrderState
+  - 모델 클래스
+  - 사용처: VoiceOrderSessionService, VoiceOrderStateMerger, VoiceOrderMapper,
+           VoiceOrderSummaryMapper, VoiceOrderCheckoutService
+
+VoiceOrderSession
+  - @Entity (또는 일반 클래스)
+  - 관계: VoiceOrderState
+  - 사용처: VoiceOrderSessionService, VoiceOrderMapper, VoiceOrderSummaryMapper
+
+VoiceOrderItem
+  - 모델 클래스
+  - 사용처: VoiceOrderState, VoiceOrderMapper, VoiceOrderSummaryMapper
+
+VoiceConversationMessage
+  - 모델 클래스
+  - 사용처: VoiceConversationService
+
+[10-2. com.mrdabak.dinnerservice.voice.dto]
+VoiceMessageDto
+  - 사용처: VoiceOrderController
+
+VoiceOrderStartResponse
+  - 사용처: VoiceOrderController
+
+VoiceOrderConfirmRequest
+  - 사용처: VoiceOrderController, VoiceOrderCheckoutService
+
+VoiceOrderConfirmResponse
+  - 사용처: VoiceOrderController, VoiceOrderCheckoutService
+
+VoiceOrderSummaryDto
+  - 사용처: VoiceOrderController, VoiceOrderSummaryMapper
+
+VoiceTranscriptionResponse
+  - 사용처: VoiceConversationService
+
+VoiceUtteranceRequest
+  - 사용처: VoiceOrderController
+
+VoiceUtteranceResponse
+  - 사용처: VoiceOrderController
+
+[10-3. com.mrdabak.dinnerservice.voice.service]
+VoiceOrderSessionService
+  - @Service
+  - 의존성:
+    * VoiceOrderState
+  - 사용처: VoiceOrderController
+
+VoiceConversationService
+  - @Service
+  - 의존성:
+    * VoiceOrderAssistantClient
+    * VoiceOrderStateMerger
+    * VoiceMenuCatalogService
+  - 사용처: VoiceOrderController
+
+VoiceOrderMapper
+  - @Service
+  - 의존성:
+    * VoiceOrderState, VoiceOrderSession
+  - 사용처: VoiceOrderController, VoiceOrderCheckoutService
+
+VoiceOrderSummaryMapper
+  - @Service
+  - 의존성:
+    * VoiceOrderState, VoiceOrderSession, DomainVocabularyNormalizer
+  - 사용처: VoiceOrderController
+
+VoiceOrderStateMerger
+  - @Service
+  - 의존성:
+    * DomainVocabularyNormalizer, RelativeDateParser
+  - 사용처: VoiceConversationService
+
+VoiceOrderAssistantClient
+  - @Service
+  - 의존성:
+    * RestTemplate (Spring)
+    * ObjectMapper (Jackson)
+    * UserRepository, OrderRepository
+  - 사용처: VoiceConversationService
+
+VoiceOrderCheckoutService
+  - @Service
+  - 의존성:
+    * OrderService
+    * VoiceOrderMapper
+    * OrderRepository
+  - 사용처: VoiceOrderController
+
+VoiceMenuCatalogService
+  - @Service
+  - 의존성:
+    * DinnerTypeRepository
+    * MenuItemRepository
+  - 사용처: VoiceConversationService
+
+[10-4. com.mrdabak.dinnerservice.voice.util]
+DomainVocabularyNormalizer
+  - @Component
+  - 사용처: VoiceOrderSummaryMapper, VoiceOrderStateMerger
+
+RelativeDateParser
+  - 유틸리티 클래스
+  - 사용처: VoiceOrderStateMerger
+
+[10-5. com.mrdabak.dinnerservice.voice.config]
+VoiceOrderHttpConfig
+  - @Configuration
+  - 구성: RestTemplate Bean
+
+[10-6. com.mrdabak.dinnerservice.voice.client]
+VoiceAssistantResponse
+  - 클라이언트 응답 모델
+  - 사용처: VoiceOrderAssistantClient
+
+[10-7. com.mrdabak.dinnerservice.voice]
+VoiceOrderException
+  - Exception 클래스
+  - 사용처: 모든 Voice 관련 서비스
+
+
+================================================================================
+[주요 클래스 관계 요약]
+================================================================================
+
+1. Controller → Service → Repository → Entity
+   예: OrderController → OrderService → OrderRepository → Order
+
+2. Service 간 의존성
+   - OrderService → InventoryService, DeliverySchedulingService
+   - OrderChangeRequestService → InventoryService, PaymentService
+   - VoiceOrderCheckoutService → OrderService
+
+3. Entity 간 관계
+   - Order 1:N OrderItem
+   - Order 1:N OrderChangeRequest
+   - OrderChangeRequest 1:N OrderChangeRequestItem
+   - Order 1:1 DeliverySchedule
+   - User N:1 Order (userId)
+   - MenuItem N:1 OrderItem (menuItemId)
+
+4. 데이터베이스 분리
+   - Main DB (mrdabak.db): User, DinnerType, MenuItem, DinnerMenuItem
+   - Order DB (orders.db): Order, OrderItem, OrderChangeRequest, OrderChangeRequestItem
+   - Schedule DB (schedule.db): DeliverySchedule, EmployeeWorkAssignment
+   - Inventory DB (inventory.db): MenuInventory, InventoryReservation
+
+5. 외부 의존성
+   - Spring Boot (Web, Data JPA, Security, Validation)
+   - JWT (io.jsonwebtoken)
+   - SQLite (org.xerial.sqlite)
+   - Hibernate (org.hibernate)
+   - Lombok
+   - Jackson (JSON 처리)
+   - Apache POI (Excel 처리)
+
+================================================================================
+

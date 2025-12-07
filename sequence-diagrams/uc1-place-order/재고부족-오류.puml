@@ -1,0 +1,38 @@
+@startuml UC1: Place Order - Low Stock Error
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Menu Selection ==
+
+User -> System: Press "Select Menu"
+System -> User: Display OrderUI
+
+== Order Process ==
+
+User -> System: Press "Select Dinner"
+System -> System: Save Dinner
+System -> User: Display ServeStyle
+
+User -> System: Press "Select ServeStyle"
+System -> User: Display Additional Options
+
+User -> System: Adjust Quantity
+User -> System: Press "Select"
+System -> Server: Request Order Creation
+
+Server -> Server: Check Inventory
+Server -> Server: Validate Inventory Capacity\n(Check maximum capacity per window)
+
+Server -> Server: Reserved Quantity + Requested Quantity > Capacity
+
+Server -> System: Low Stock Error\n("Insufficient stock" or\n"Exceeds maximum capacity per window")
+
+System -> User: Display Error Message\n("Insufficient stock")
+
+@enduml

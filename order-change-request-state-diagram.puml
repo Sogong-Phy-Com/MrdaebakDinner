@@ -1,0 +1,112 @@
+@startuml OrderChangeRequestStateDiagram
+!theme plain
+skinparam state {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+
+title OrderChangeRequest State Diagram - Mr. DaeBak Dinner Service
+
+[*] --> REQUESTED: createChangeRequest()\n[guard: order.canModify() == true]\n[action: validate inventory,\ncalculate price difference,\ncalculate change fee]
+
+state "REQUESTED" as REQUESTED {
+  REQUESTED : status = REQUESTED
+  REQUESTED : requestedAt = now()
+}
+
+REQUESTED --> REQUESTED: updateChangeRequest()\n[guard: status in ACTIVE_REQUEST_STATUSES]\n[action: recalculate price,\nrevalidate inventory]
+
+REQUESTED --> APPROVED: approve()\n[guard: inventory available,\nextraChargeAmount == 0]\n[action: replace InventoryReservation,\nupdate Order items,\nupdate Order details,\ncancel DeliverySchedule]
+
+REQUESTED --> APPROVED: approve()\n[guard: inventory available,\nextraChargeAmount > 0,\npayment successful]\n[action: chargeAdditionalAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+REQUESTED --> APPROVED: approve()\n[guard: inventory available,\nextraChargeAmount < 0,\nrefund successful]\n[action: refundAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+REQUESTED --> PAYMENT_FAILED: approve()\n[guard: inventory available,\nextraChargeAmount > 0,\npayment failed]\n[action: set status = PAYMENT_FAILED,\nsave admin comment]
+
+REQUESTED --> REFUND_FAILED: approve()\n[guard: inventory available,\nextraChargeAmount < 0,\nrefund failed]\n[action: set status = REFUND_FAILED,\nsave admin comment]
+
+REQUESTED --> REJECTED: reject()\n[guard: status in ACTIVE_REQUEST_STATUSES]\n[action: set rejectedAt = now(),\nsave admin comment]
+
+state "PAYMENT_FAILED" as PAYMENT_FAILED {
+  PAYMENT_FAILED : status = PAYMENT_FAILED
+  PAYMENT_FAILED : requires retry
+}
+
+PAYMENT_FAILED --> REQUESTED: updateChangeRequest()\n[guard: customer wants to retry]\n[action: allow modification]
+
+PAYMENT_FAILED --> APPROVED: retryPayment()\n[guard: payment successful]\n[action: chargeAdditionalAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+PAYMENT_FAILED --> REJECTED: reject()\n[guard: admin rejects]\n[action: set rejectedAt = now()]
+
+state "REFUND_FAILED" as REFUND_FAILED {
+  REFUND_FAILED : status = REFUND_FAILED
+  REFUND_FAILED : requires retry
+}
+
+REFUND_FAILED --> REQUESTED: updateChangeRequest()\n[guard: customer wants to retry]\n[action: allow modification]
+
+REFUND_FAILED --> APPROVED: retryRefund()\n[guard: refund successful]\n[action: refundAmount(),\nreplace InventoryReservation,\nupdate Order items]
+
+REFUND_FAILED --> REJECTED: reject()\n[guard: admin rejects]\n[action: set rejectedAt = now()]
+
+state "APPROVED" as APPROVED {
+  APPROVED : status = APPROVED
+  APPROVED : approvedAt = now()
+  APPROVED : final state
+}
+
+state "REJECTED" as REJECTED {
+  REJECTED : status = REJECTED
+  REJECTED : rejectedAt = now()
+  REJECTED : final state
+}
+
+APPROVED --> [*]
+
+REJECTED --> [*]
+
+note right of REQUESTED
+  활성 상태 (ACTIVE_REQUEST_STATUSES):
+  - REQUESTED
+  - PAYMENT_FAILED
+  - REFUND_FAILED
+  
+  활성 상태일 때만 수정 가능
+end note
+
+note right of APPROVED
+  승인 시 프로세스:
+  1. 재고 검증
+  2. 가격 차이 계산 (extraChargeAmount)
+  3. extraChargeAmount > 0: 추가 결제
+  4. extraChargeAmount < 0: 환불
+  5. extraChargeAmount == 0: 변경만 수행
+  6. 재고 예약 교체
+  7. 주문 정보 업데이트
+end note
+
+note right of PAYMENT_FAILED
+  추가 결제 실패:
+  - 상태는 PAYMENT_FAILED로 유지
+  - 고객이 재시도 가능
+  - 관리자가 거부 가능
+end note
+
+note right of REFUND_FAILED
+  환불 실패:
+  - 상태는 REFUND_FAILED로 유지
+  - 고객이 재시도 가능
+  - 관리자가 거부 가능
+end note
+
+note right of REJECTED
+  거부 시:
+  - 변경 요청 거부
+  - 원래 주문은 그대로 유지
+  - 추가 액션 없음
+end note
+
+@enduml
+

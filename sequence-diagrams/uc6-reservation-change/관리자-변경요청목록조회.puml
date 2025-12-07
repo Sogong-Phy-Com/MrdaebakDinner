@@ -1,0 +1,20 @@
+@startuml UC6: Reservation Change - Admin List Requests
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Change Request Management ==
+
+User -> System: Access Change Request Management Page
+System -> Server: Request Change Request List
+Server -> Server: Retrieve Change Requests
+Server -> Server: Retrieve Order Information
+Server -> System: Change Request List Transfer
+System -> User: Display Change Request List
+
+@enduml

@@ -1,0 +1,21 @@
+@startuml UC6: Reservation Change - Admin Reject
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Reject Change Request ==
+
+User -> System: Press "Reject Change Request" Button
+System -> Server: Request Reject Change Request
+Server -> Server: Check Change Request
+Server -> Server: Update Change Request Status to Rejected
+Server -> Server: Set Rejection Reason
+Server -> System: Rejection Complete
+System -> User: Display Rejection Complete Message
+
+@enduml

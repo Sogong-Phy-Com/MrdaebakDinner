@@ -1,0 +1,54 @@
+@startuml UC1: Place Order - Normal Flow
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Menu Selection ==
+
+User -> System: Press "Select Menu"
+System -> User: Display OrderUI
+
+== Dinner Selection ==
+
+User -> System: Press "Select Dinner"
+System -> System: Save Dinner
+System -> User: Display ServeStyle
+
+== Serve Style Selection ==
+
+User -> System: Press "Select ServeStyle"
+System -> User: Display Additional Options
+
+== Quantity Adjustment and Confirmation ==
+
+User -> System: Adjust Quantity
+User -> System: Press "Select"
+System -> System: Save Order Information
+System -> User: Display Print Menu, '+', '-', 'Payment' Button
+
+== Payment Process ==
+
+User -> System: Press "Payment"
+System -> Server: Request For Customer Information
+Server -> System: Customer Information Transfer
+System -> User: Display Payment Method
+
+User -> System: Press "Card Payment"
+User -> System: Input Credit Card Information
+System -> Server: Payment Request
+Server -> Server: Process Payment
+Server -> System: Payment Successful
+
+System -> Server: Save Reservation Request
+Server -> System: Reservation Saved
+
+System -> User: Print "Payment Complete"
+System -> User: Print "Reservation Application Complete"
+
+@enduml
+

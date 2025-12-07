@@ -1,0 +1,1056 @@
+@startuml
+!theme plain
+skinparam activity {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+skinparam arrow {
+  Color #333333
+}
+skinparam partition {
+  BackgroundColor #F0F0F0
+  BorderColor #666666
+}
+
+title Customer Activity Diagram - Mr. DaeBak Dinner Service
+
+start
+
+partition Authentication {
+  if (Has Account?) then (no)
+    fork
+      :Enter Email;
+      :Enter Password;
+      :Set Security Question;
+      :Set Security Answer;
+    fork again
+      :Enter Personal Information;
+      :Set Consent Preferences;
+      :Set Loyalty Consent;
+    end fork
+    :Submit Registration;
+    
+    if (Registration Successful?) then (no)
+      :Display Error Message;
+      stop
+    else (yes)
+      :Auto-approval as Customer;
+      :Account Created;
+    endif
+  else (yes)
+  endif
+  
+  :Login with Email/Password;
+  
+  if (Login Successful?) then (no)
+    if (Forgot Password?) then (yes)
+      :Navigate to Forgot Password;
+      :Enter Email;
+      :Enter Security Answer;
+      :Reset Password;
+      :Return to Login;
+    else (no)
+      :Display Login Error;
+      stop
+    endif
+  else (yes)
+    :JWT Token Received;
+    :Session Established;
+  endif
+}
+
+partition MenuBrowsing {
+  fork
+    :Fetch Dinner Types;
+    :Display Available Menus\n(Valentine, French, English, Champagne);
+  fork again
+    :Fetch Menu Items;
+    :Display Menu Item Details;
+  fork again
+    :Fetch Serving Styles;
+    :Display Serving Styles\n(Simple, Grand, Deluxe);
+  end fork
+  :View Prices and Details;
+}
+
+partition OrderCreation {
+  if (Order Method?) then (Voice)
+    partition VoiceOrder {
+      :Click Voice Order Button;
+      :Activate Web Speech API;
+      :Create Voice Order Session;
+      
+      repeat
+        fork
+          :Capture Voice Input;
+          :Convert Speech to Text;
+        fork again
+          :Send to Groq LLM API;
+          :Extract Intent and Entities;
+          :Parse Order Information;
+        end fork
+        
+        :Update Voice Order State;
+        :Display Extracted Information;
+        
+        if (Information Complete?) then (no)
+          :System Requests Additional Info;
+        else (yes)
+        endif
+      repeat while (Order Not Confirmed?)
+      
+      :Display Complete Order Summary;
+      :Customer Reviews Order;
+      
+      if (Customer Confirms?) then (yes)
+        :Finalize Voice Order;
+        :Save Voice Order Session;
+      else (no)
+        :Request Modification;
+        :Return to Voice Input;
+      endif
+    }
+  else (Text)
+    :Fill Order Form;
+    :Select Dinner Type;
+    :Select Serving Style;
+    :Enter Number of Guests;
+    :Select Delivery Date;
+    :Select Delivery Time Window;
+  endif
+  
+  partition ValidationAndPayment {
+    fork
+      :Check Inventory Availability;
+      :Validate Stock Levels;
+      :Check Delivery Window Availability;
+    fork again
+      :Calculate Base Price;
+      :Apply Loyalty Discount\n(10% for repeat customers);
+      :Calculate Total Amount;
+    end fork
+    
+    :Display Order Summary and Price;
+    
+    if (Inventory Sufficient?) then (no)
+      :Display Insufficient Stock Message;
+      :Return to Menu Selection;
+      stop
+    else (yes)
+    endif
+    
+    :Confirm Order Details;
+    
+    fork
+      :Create Order Record;
+      :Set Order Status = pending;
+      :Set Admin Approval Status = PENDING;
+      :Save Order Items;
+    fork again
+      :Process Payment;
+      :Validate Payment Information;
+      :Charge Payment Method;
+    end fork
+    
+    if (Payment Successful?) then (no)
+      :Display Payment Error;
+      :Order Creation Failed;
+      stop
+    else (yes)
+      :Payment Confirmed;
+      :Order Created Successfully;
+    endif
+  }
+}
+
+partition OrderManagement {
+  :Wait for Admin Approval;
+  
+  repeat
+    :Check Order Status;
+    
+    if (Order Status Changed?) then (yes)
+      :Receive Notification;
+      :Update Order Display;
+    else (no)
+    endif
+  repeat while (Admin Approval Pending?)
+  
+  if (Order Approved?) then (no)
+    :Receive Rejection Notification;
+    :Process Automatic Refund;
+    :Order Cancelled;
+    stop
+  else (yes)
+    :Receive Approval Notification;
+    :Set Admin Approval Status = APPROVED;
+    :Inventory Reservation Created;
+  endif
+  
+  if (Need to Change Order?) then (yes)
+    partition ChangeRequest {
+      :View Current Order Details;
+      
+      if (Before Delivery Day 00:00?) then (no)
+        :Change Request Period Expired;
+        :Cannot Modify Order;
+      else (yes)
+        if (Active Change Request Exists?) then (yes)
+          :Load Existing Change Request;
+          :Edit Change Request;
+          :Update Change Details;
+        else (no)
+          :Create New Change Request;
+        endif
+        
+        fork
+          :Select Menu Changes;
+          :Select Guest Count Changes;
+          :Select Style Changes;
+        fork again
+          :Calculate Before/After Comparison;
+          :Return Existing Inventory Reservation;
+          :Check New Inventory Availability;
+        end fork
+        
+        if (Inventory Sufficient for Changes?) then (no)
+          :Display Insufficient Stock Message;
+          stop
+        else (yes)
+        endif
+        
+        :Calculate Change Fee;
+        
+        if (3-1 Days Before Delivery?) then (yes)
+          :Apply 30,000 KRW Change Fee;
+        else (no)
+          :No Change Fee;
+        endif
+        
+        :Submit Change Request;
+        :Set Change Status = REQUESTED;
+        
+        :Wait for Admin Review;
+        
+        repeat
+          :Check Change Request Status;
+          
+          if (Change Status Changed?) then (yes)
+            :Receive Notification;
+          else (no)
+          endif
+        repeat while (Change Request Pending?)
+        
+        if (Change Approved?) then (yes)
+          :Set Change Status = APPROVED;
+          
+          fork
+            :Calculate Price Difference;
+            
+            if (Additional Amount Required?) then (yes)
+              :Request Additional Payment;
+              :Process Additional Payment;
+              
+              if (Payment Successful?) then (yes)
+                :Additional Payment Confirmed;
+              else (no)
+                :Set Change Status = PAYMENT_FAILED;
+                :Retry Payment Available;
+                stop
+              endif
+            else (no)
+              :Calculate Refund Amount;
+              :Process Refund;
+              :Refund Confirmed;
+            endif
+          fork again
+            :Update Order Information;
+            :Reallocate Inventory;
+            :Update Delivery Schedule if Needed;
+          end fork
+          
+          :Change Request Completed;
+          :Receive Change Confirmation;
+        else (no)
+          :Set Change Status = REJECTED;
+          :Change Request Rejected;
+          :Receive Rejection Notification;
+        endif
+      endif
+    }
+  else (no)
+  endif
+  
+  fork
+    :View Order List;
+    :Filter Orders by Status;
+    :View Order Details;
+  fork again
+    :Track Delivery Status;
+    :Monitor Order Progress;
+  end fork
+  
+  partition DeliveryTracking {
+    repeat
+      :Check Order Status;
+      
+      if (Order Status == cooking?) then (yes)
+        :Display "Cooking" Status;
+      else (no)
+      endif
+      
+      if (Order Status == out_for_delivery?) then (yes)
+        :Display "Out for Delivery" Status;
+        :Show Estimated Delivery Time;
+      else (no)
+      endif
+      
+      if (Order Status == delivered?) then (yes)
+        :Display "Delivered" Status;
+        :Receive Delivery Completion Notification;
+      else (no)
+      endif
+    repeat while (Order Not Delivered?)
+  }
+  
+  :View Order History;
+  :Download Receipt;
+}
+
+partition ProfileManagement {
+  :Navigate to Profile Page;
+  
+  fork
+    :View Personal Information;
+    :Update Name;
+    :Update Address;
+    :Update Phone Number;
+  fork again
+    :View Payment Information;
+    :Update Card Number;
+    :Update Card Expiry;
+    :Update Card CVV;
+    :Update Card Holder Name;
+  fork again
+    :View Order History;
+    :Filter Orders;
+    :View Order Details;
+  fork again
+    :Update Security Question;
+    :Update Security Answer;
+    :Change Password;
+  end fork
+  
+  :Save Profile Changes;
+}
+
+:Customer Session Ends;
+
+stop
+
+@enduml
+
+
+@startuml
+!theme plain
+skinparam activity {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+skinparam arrow {
+  Color #333333
+}
+skinparam partition {
+  BackgroundColor #F0F0F0
+  BorderColor #666666
+}
+
+title Employee Activity Diagram - Mr. DaeBak Dinner Service
+
+start
+
+partition Authentication {
+  :Employee Login;
+  :Enter Employee Credentials;
+  
+  if (Login Successful?) then (no)
+    :Display Login Error;
+    stop
+  else (yes)
+    :JWT Token Received;
+    :Check Employee Type\n(cooking/delivery);
+    :Check Approval Status;
+    
+    if (Approval Status == pending?) then (yes)
+      :Show Pending Approval Page;
+      stop
+    else (yes)
+      :Session Established;
+    endif
+  endif
+}
+
+partition OrderManagement {
+  :Navigate to Order Management;
+  
+  fork
+    :Fetch All Orders;
+    :Display Order List;
+  fork again
+    :Fetch Work Assignments;
+    :Check Assigned Tasks;
+  fork again
+    :Fetch Delivery Schedules;
+    :Check Schedule Availability;
+  end fork
+  
+  :Filter Orders by Status;
+  :Search Orders;
+  :Sort Orders;
+  
+  repeat
+    :Select Order to Process;
+    :View Order Details;
+    :View Order Items;
+    :View Customer Information;
+    :View Delivery Address;
+    
+    if (Employee Type == cooking?) then (yes)
+      partition CookingTasks {
+        if (Order Status == pending\nAND Admin Approval == APPROVED?) then (yes)
+          fork
+            :Review Order Items;
+            :Check Required Menu Items;
+            :Verify Inventory Reservations;
+          fork again
+            :Check Work Assignment;
+            :Verify Cooking Assignment;
+          end fork
+          
+          :Click Start Cooking Button;
+          
+          fork
+            :Set Order Status = cooking;
+            :Update Order Record;
+          fork again
+            :Consume Inventory Reservations;
+            :Set InventoryReservation.consumed = true;
+            :Reduce capacity_per_window;
+            :Update Menu Inventory;
+          end fork
+          
+          :Cooking Started;
+          :Notify System;
+        else (no)
+        endif
+        
+        if (Order Status == cooking?) then (yes)
+          :Monitor Cooking Progress;
+          :Update Cooking Status;
+        else (no)
+        endif
+        
+        if (Order Status == out_for_delivery?) then (yes)
+          :Click Complete Delivery Button;
+          :Set Order Status = delivered;
+          :Record Delivery Completion Time;
+          :Notify Customer;
+          :Delivery Completed;
+        else (no)
+        endif
+      }
+    else (no)
+    endif
+    
+    if (Employee Type == delivery?) then (yes)
+      partition DeliveryTasks {
+        if (Order Status == cooking?) then (yes)
+          fork
+            :Review Delivery Address;
+            :Calculate Delivery Route;
+            :Estimate Travel Time;
+          fork again
+            :Check Delivery Schedule;
+            :Verify Delivery Assignment;
+            :Check Work Assignment;
+          end fork
+          
+          :Click Start Delivery Button;
+          
+          fork
+            :Set Order Status = out_for_delivery;
+            :Update Order Record;
+          fork again
+            :Update Delivery Schedule;
+            :Record Delivery Start Time;
+          end fork
+          
+          :Delivery Started;
+          :Begin Delivery Process;
+        else (no)
+        endif
+        
+        if (Order Status == out_for_delivery?) then (yes)
+          :Monitor Delivery Progress;
+          :Update Delivery Location;
+          :Click Complete Delivery Button;
+          
+          fork
+            :Set Order Status = delivered;
+            :Record Delivery Completion;
+          fork again
+            :Update Delivery Schedule;
+            :Mark Assignment Complete;
+          end fork
+          
+          :Notify Customer;
+          :Delivery Completed;
+        else (no)
+        endif
+      }
+    else (no)
+    endif
+    
+  repeat while (More Orders to Process?)
+}
+
+partition InventoryManagement {
+  :Navigate to Inventory Management;
+  
+  fork
+    :Fetch Inventory List;
+    :Display Current Stock;
+  fork again
+    :Fetch Inventory Reservations;
+    :Display Reserved Quantities;
+  end fork
+  
+  repeat
+    :View Menu Item Inventory;
+    :Check capacity_per_window;
+    :Check reserved Quantity;
+    :Check remaining Quantity;
+    :Check weekly_reserved;
+    :View Inventory Alerts;
+    :Monitor Stock Levels;
+  repeat while (More Items to Check?)
+  
+  :Report Inventory Issues;
+  :View Inventory History;
+}
+
+partition ScheduleManagement {
+  :Navigate to Schedule View;
+  
+  fork
+    :Fetch Work Schedule;
+    :Display Assigned Shifts;
+  fork again
+    :Fetch Delivery Schedule;
+    :Display Delivery Time Windows;
+  fork again
+    :Fetch Employee Work Assignments;
+    :Display Task Assignments;
+  end fork
+  
+  :View Schedule Calendar;
+  :Check Available Time Slots;
+  :View Order Assignments;
+  :Check Delivery Routes;
+  :Monitor Schedule Status;
+}
+
+partition OrderMonitoring {
+  fork
+    :View Pending Orders;
+    :Monitor Approval Status;
+  fork again
+    :View Cooking Orders;
+    :Track Cooking Progress;
+  fork again
+    :View Delivery Orders;
+    :Track Delivery Progress;
+  fork again
+    :View Completed Orders;
+    :Review Completed Deliveries;
+  end fork
+  
+  :Generate Daily Summary;
+  :View Order Statistics;
+}
+
+:Employee Logout;
+
+stop
+
+@enduml
+
+
+@startuml
+!theme plain
+skinparam activity {
+  BackgroundColor #E8F4F8
+  BorderColor #333333
+  FontSize 11
+}
+skinparam arrow {
+  Color #333333
+}
+skinparam partition {
+  BackgroundColor #F0F0F0
+  BorderColor #666666
+}
+
+title Admin Activity Diagram - Mr. DaeBak Dinner Service
+
+start
+
+partition Authentication {
+  :Admin Login;
+  :Enter Admin Credentials;
+  
+  if (Login Successful?) then (no)
+    :Display Login Error;
+    stop
+  else (yes)
+    :JWT Token Received;
+    :Verify Admin Role;
+    :Session Established;
+  endif
+}
+
+partition OrderApproval {
+  :Navigate to Order Approval;
+  
+  fork
+    :Fetch Pending Orders;
+    :Display Order List;
+  fork again
+    :Fetch Order Statistics;
+    :Display Summary Information;
+  end fork
+  
+  :Filter Orders by Status;
+  :Search Orders;
+  :Sort by Date/Priority;
+  
+  repeat
+    :Select Order to Review;
+    
+    fork
+      partition OrderReview {
+        :View Order Details;
+        :View Order Items;
+        :View Customer Information;
+        :Check Customer History;
+        :View Delivery Date/Time;
+        :Verify Serving Style;
+        :Check Total Amount;
+      }
+    fork again
+      partition InventoryCheck {
+        :Check Inventory Availability;
+        :Verify capacity_per_window;
+        :Check reserved Quantities;
+        :Calculate remaining Inventory;
+        :Check Weekly Reserved;
+        
+        if (Inventory Sufficient?) then (no)
+          :Flag Inventory Issue;
+          :Calculate Shortage;
+        else (yes)
+        endif
+      }
+    fork again
+      partition ScheduleCheck {
+        :Check Delivery Window Availability;
+        :Verify Schedule Capacity;
+        :Check Employee Availability;
+      }
+    end fork
+    
+    partition ApprovalDecision {
+      if (Order Approvable?) then (yes)
+        fork
+          :Approve Order;
+          :Set Admin Approval Status = APPROVED;
+          :Set Order Status = pending;
+        fork again
+          :Create Inventory Reservation;
+          :Set consumed = false;
+          :Reserve Menu Items;
+          :Update reserved Quantities;
+        fork again
+          :Create Delivery Schedule;
+          :Set Delivery Window;
+          :Assign Delivery Time Slot;
+        fork again
+          :Assign Employees;
+          :Create Work Assignments\n(COOKING/DELIVERY);
+        end fork
+        
+        :Order Approved;
+        :Notify Customer;
+        :Record Approval Time;
+      else (no)
+        fork
+          :Reject Order;
+          :Set Admin Approval Status = REJECTED;
+        fork again
+          :Record Rejection Reason;
+          :Save Rejection Details;
+        fork again
+          :Process Automatic Refund;
+          :Refund to Customer;
+        end fork
+        
+        :Notify Customer of Rejection;
+        :Order Rejected;
+      endif
+    }
+    
+  repeat while (More Orders to Review?)
+}
+
+partition ChangeRequestManagement {
+  :Navigate to Change Request Management;
+  
+  fork
+    :Fetch Change Request List;
+    :Display All Change Requests;
+  fork again
+    :Fetch Change Request Statistics;
+    :Display Summary;
+  end fork
+  
+  :Filter by Status\n(REQUESTED/APPROVED/REJECTED/PAYMENT_FAILED);
+  :Search Change Requests;
+  
+  repeat
+    :Select Change Request;
+    
+    fork
+      partition ChangeReview {
+        :View Original Order;
+        :View Requested Changes;
+        :Compare Before/After;
+        :View Menu Changes;
+        :View Guest Count Changes;
+        :View Style Changes;
+        :Calculate Price Difference;
+        :Check Change Fee Applicability;
+      }
+    fork again
+      partition InventoryValidation {
+        :Calculate Existing Reservation Return;
+        :Verify New Inventory Availability;
+        :Check Change Difference Inventory;
+        :Validate Stock for Changes;
+        
+        if (Inventory Sufficient for Changes?) then (no)
+          :Flag Inventory Issue;
+          :Calculate Shortage;
+        else (yes)
+        endif
+      }
+    fork again
+      partition PaymentCheck {
+        :Check Change Request Status;
+        :Verify Payment Status;
+        :Check Previous Payment Attempts;
+      }
+    end fork
+    
+    partition ChangeDecision {
+      if (Change Approvable?) then (yes)
+        :Approve Change Request;
+        :Set Change Status = APPROVED;
+        
+        fork
+          partition PaymentProcessing {
+            if (Additional Amount Required?) then (yes)
+              :Calculate Additional Amount;
+              :Request Additional Payment from Customer;
+              
+              if (Payment Successful?) then (yes)
+                :Additional Payment Confirmed;
+                :Payment Processed;
+              else (no)
+                :Set Change Status = PAYMENT_FAILED;
+                :Notify Customer to Retry Payment;
+                :Mark for Retry;
+              endif
+            else (no)
+              :Calculate Refund Amount;
+              :Process Refund;
+              
+              if (Refund Successful?) then (yes)
+                :Refund Confirmed;
+                :Refund Processed;
+              else (no)
+                :Set Change Status = REFUND_FAILED;
+                :Handle Refund Failure;
+                :Mark for Retry;
+              endif
+            endif
+          }
+        fork again
+          partition OrderUpdate {
+            :Return Existing Inventory Reservation;
+            :Update Order Information;
+            :Update Order Items;
+            :Create New Inventory Reservation;
+            :Reallocate Inventory;
+            :Update Delivery Schedule if Needed;
+            :Adjust Employee Assignments if Needed;
+          }
+        end fork
+        
+        :Change Request Completed;
+        :Notify Customer of Approval;
+      else (no)
+        fork
+          :Reject Change Request;
+          :Set Change Status = REJECTED;
+        fork again
+          :Record Rejection Reason;
+          :Save Rejection Details;
+        end fork
+        
+        :Notify Customer of Rejection;
+        :Change Request Rejected;
+      endif
+    }
+    
+  repeat while (More Change Requests to Review?)
+}
+
+partition AccountManagement {
+  :Navigate to Account Management;
+  
+  fork
+    :Fetch All User Accounts;
+    :Display User List;
+  fork again
+    :Fetch User Statistics;
+    :Display Summary;
+  end fork
+  
+  :Filter Users by Role\n(customer/employee/admin);
+  :Search Users;
+  :Sort Users;
+  
+  repeat
+    :Select User Account;
+    
+    fork
+      :View User Details;
+      :View User Information;
+      :Check User Status;
+      :View Approval Status;
+    fork again
+      :View User Order History;
+      :Check Order Count;
+      :View Order Statistics;
+    fork again
+      :Update User Information;
+      :Modify User Details;
+      :Update User Role if Needed;
+    fork again
+      :Manage User Approval Status;
+      :Approve/Reject User;
+      :Activate/Deactivate Account;
+    fork again
+      :Reset User Password;
+      :Generate New Password;
+    end fork
+    
+    :Save Account Changes;
+    
+  repeat while (More Accounts to Manage?)
+  
+  :Create New Employee Account;
+  :Set Employee Type\n(cooking/delivery);
+  :Set Initial Approval Status;
+}
+
+partition EmployeeManagement {
+  :Navigate to Employee Management;
+  
+  fork
+    :Fetch Employee List;
+    :Display All Employees;
+  fork again
+    :Fetch Employee Statistics;
+    :Display Summary;
+  end fork
+  
+  :Filter by Employee Type\n(cooking/delivery);
+  :Search Employees;
+  
+  repeat
+    :Select Employee;
+    
+    fork
+      :View Employee Details;
+      :Check Employee Type;
+      :View Work History;
+    fork again
+      :Assign Work Shifts;
+      :Create Work Assignments;
+      :Set Work Schedule;
+    fork again
+      :View Employee Work Assignments;
+      :Check Assignment History;
+      :Monitor Performance;
+    fork again
+      :Update Employee Information;
+      :Change Employee Type;
+      :Modify Employee Details;
+    fork again
+      :Remove Employee;
+      :Deactivate Employee Account;
+    end fork
+    
+  repeat while (More Employees to Manage?)
+}
+
+partition InventoryManagement {
+  :Navigate to Inventory Management;
+  
+  fork
+    :Fetch Complete Inventory Status;
+    :Display All Menu Items;
+  fork again
+    :Fetch Inventory Statistics;
+    :Display Summary;
+  fork again
+    :Fetch Inventory Reservations;
+    :Display Reservation Status;
+  end fork
+  
+  repeat
+    :Select Menu Item;
+    
+    fork
+      :View Current Stock\n(capacity_per_window);
+      :View Reserved Quantities;
+      :View Remaining Quantities;
+      :View Weekly Reserved;
+    fork again
+      :Update Inventory Quantities;
+      :Set Stock Levels;
+      :Adjust Capacity;
+    fork again
+      :Configure Inventory Settings;
+      :Set Restock Schedule;
+      :Set Default Capacity;
+    fork again
+      :View Inventory Alerts;
+      :Check Low Stock Items;
+      :Monitor Stock Trends;
+    end fork
+    
+  repeat while (More Items to Manage?)
+  
+  :View Inventory Reports;
+  :Generate Inventory Analytics;
+  :Export Inventory Data;
+  :Configure Automatic Restock;
+  :Set Restock Days/Time;
+}
+
+partition ScheduleManagement {
+  :Navigate to Schedule Management;
+  
+  fork
+    :Fetch All Delivery Schedules;
+    :Display Schedule Calendar;
+  fork again
+    :Fetch Employee Work Assignments;
+    :Display Assignments;
+  fork again
+    :Fetch Order Assignments;
+    :Display Order Schedule;
+  end fork
+  
+  repeat
+    :Select Schedule Period;
+    
+    fork
+      :Create Delivery Schedule;
+      :Set Delivery Time Windows;
+      :Define Shift Times;
+    fork again
+      :Update Delivery Schedule;
+      :Modify Time Windows;
+      :Adjust Schedule;
+    fork again
+      :Assign Employees to Schedules;
+      :Create Work Assignments;
+      :Set Employee Types;
+    fork again
+      :View Schedule Conflicts;
+      :Resolve Conflicts;
+      :Optimize Assignments;
+    fork again
+      :Cancel/Modify Schedules;
+      :Update Schedule Status;
+    end fork
+    
+  repeat while (More Schedules to Manage?)
+  
+  :Optimize Schedule Assignment;
+  :Automate Schedule Generation;
+  :View Schedule Analytics;
+}
+
+partition Reporting {
+  :Navigate to Reporting;
+  
+  fork
+    partition SalesReporting {
+      :Generate Daily Sales Report;
+      :Calculate Revenue;
+      :View Order Statistics;
+      :Track Sales Trends;
+      :View Revenue Analytics;
+    }
+  fork again
+    partition OrderReporting {
+      :Generate Order Statistics;
+      :View Order Trends;
+      :Analyze Order Patterns;
+      :View Order Completion Rates;
+      :Track Order Status Distribution;
+    }
+  fork again
+    partition InventoryReporting {
+      :Generate Inventory Reports;
+      :View Stock Levels;
+      :Analyze Inventory Usage;
+      :View Inventory Turnover;
+      :Track Inventory Trends;
+    }
+  fork again
+    partition EmployeeReporting {
+      :Generate Employee Performance Reports;
+      :View Work Assignment Statistics;
+      :Analyze Employee Efficiency;
+      :Track Delivery Performance;
+    }
+  end fork
+  
+  :Export Reports;
+  :Generate PDF Reports;
+  :View System Analytics;
+  :View Dashboard;
+}
+
+:Admin Logout;
+
+stop
+
+@enduml

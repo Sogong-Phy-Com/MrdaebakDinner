@@ -1,0 +1,21 @@
+@startuml UC2: View Orders - No Orders
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Order History ==
+
+User -> System: Access Order History Page
+System -> Server: Request Order List
+Server -> Server: Check User Orders
+Server -> Server: No Orders Found
+
+Server -> System: Empty Order List
+System -> User: Display Message\n("No order history")
+
+@enduml

@@ -1,0 +1,34 @@
+@startuml UC1: Place Order - Duplicate Order Error
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Menu Selection ==
+
+User -> System: Press "Select Menu"
+System -> User: Display OrderUI
+
+== Order Attempt ==
+
+User -> System: Press "Select Dinner"
+System -> System: Save Dinner
+System -> User: Display ServeStyle
+
+User -> System: Press "Select ServeStyle"
+System -> User: Display Additional Options
+
+User -> System: Adjust Quantity
+User -> System: Press "Select"
+System -> Server: Check Duplicate Order
+
+Server -> Server: Detect Duplicate Order\n(Same Request ID or\nRequest within 50 seconds)
+
+Server -> System: Duplicate Order Error
+System -> User: Display Error Message\n("Same order was recently created")
+
+@enduml

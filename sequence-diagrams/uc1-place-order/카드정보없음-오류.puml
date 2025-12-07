@@ -1,0 +1,35 @@
+@startuml UC1: Place Order - No Card Information Error
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Menu Selection ==
+
+User -> System: Press "Select Menu"
+System -> User: Display OrderUI
+
+== Order Process ==
+
+User -> System: Press "Select Dinner"
+System -> System: Save Dinner
+System -> User: Display ServeStyle
+
+User -> System: Press "Select ServeStyle"
+System -> User: Display Additional Options
+
+User -> System: Adjust Quantity
+User -> System: Press "Select"
+System -> Server: Request Order Creation
+
+Server -> Server: Check Card Information
+Server -> Server: Card Information Not Found
+
+Server -> System: Card Information Required Error
+System -> User: Display Error Message\n("Card information registration required")
+
+@enduml

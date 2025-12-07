@@ -1,0 +1,24 @@
+@startuml UC2: View Orders - Authentication Failed
+
+!theme plain
+
+autonumber
+
+actor User
+participant "System" as System
+participant "Server" as Server
+
+== Access Order History ==
+
+User -> System: Access Order History Page
+System -> Server: Request Order List
+
+alt No Token
+    Server -> System: Authentication Failed
+else Token Expired or Invalid
+    Server -> System: Authentication Failed
+end
+
+System -> User: Redirect to Login Page
+
+@enduml

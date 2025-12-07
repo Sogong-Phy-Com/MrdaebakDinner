@@ -1,0 +1,144 @@
+@startuml Schedule State Diagram - Order Processing Flow
+!theme plain
+skinparam state {
+    BackgroundColor<<initial>> LightBlue
+    BackgroundColor<<final>> LightGreen
+    BackgroundColor<<decision>> LightYellow
+    BackgroundColor<<process>> LightGray
+    ArrowColor Black
+    BorderColor Black
+}
+
+title Schedule State Diagram - Order Processing Flow\n(From Admin Assignment to Cooking and Delivery)
+
+state "Order Created" as OrderCreated <<initial>> {
+    state "Order Status: pending" as Pending
+    state "Admin Approval: PENDING" as AdminPending
+}
+
+state "Employee Assignment" as EmployeeAssignment <<process>> {
+    state "Assign Cooking Employee" as AssignCooking
+    state "Assign Delivery Employee" as AssignDelivery
+    state "Create Delivery Schedule" as CreateSchedule
+    note right of CreateSchedule
+        DeliverySchedule.status = "SCHEDULED"
+        Calculate departure_time, arrival_time, return_time
+    end note
+}
+
+state "Admin Approval" as AdminApproval <<decision>> {
+    state "Approve Order" as Approve
+    state "Reject Order" as Reject
+}
+
+state "Cooking Phase" as CookingPhase <<process>> {
+    state "Cooking Started" as CookingStarted
+    state "Cooking In Progress" as CookingInProgress
+    state "Cooking Completed" as CookingCompleted
+    note right of CookingStarted
+        Order.status = "cooking"
+        Consume inventory reservations
+        Set cookingEmployeeId
+    end note
+    note right of CookingCompleted
+        Order.status = "ready"
+        Ready for delivery
+    end note
+}
+
+state "Delivery Phase" as DeliveryPhase <<process>> {
+    state "Delivery Started" as DeliveryStarted
+    state "Delivery In Progress" as DeliveryInProgress
+    state "Delivery Completed" as DeliveryCompleted
+    note right of DeliveryStarted
+        Order.status = "out_for_delivery"
+        DeliverySchedule.status = "IN_PROGRESS"
+        Set deliveryEmployeeId
+    end note
+    note right of DeliveryCompleted
+        Order.status = "delivered"
+        DeliverySchedule.status = "COMPLETED"
+    end note
+}
+
+state "Cancelled" as Cancelled <<final>> {
+    state "Order Cancelled" as OrderCancelled
+    state "Schedule Cancelled" as ScheduleCancelled
+    note right of OrderCancelled
+        Order.status = "cancelled"
+        DeliverySchedule.status = "CANCELLED"
+    end note
+}
+
+[*] --> OrderCreated : Customer places order
+
+OrderCreated --> EmployeeAssignment : Admin assigns employees
+
+EmployeeAssignment --> AssignCooking : Admin assigns cooking employee
+AssignCooking --> AssignDelivery : Admin assigns delivery employee
+AssignDelivery --> CreateSchedule : Create delivery schedule
+CreateSchedule --> AdminApproval : Proceed to approval
+
+AdminApproval --> Approve : Admin approves
+AdminApproval --> Reject : Admin rejects
+Reject --> Cancelled : Order rejected
+
+Approve --> CookingPhase : Order approved
+
+CookingPhase --> CookingStarted : Cooking employee starts cooking
+CookingStarted --> CookingInProgress : Cooking in progress
+CookingInProgress --> CookingCompleted : Cooking completed
+
+CookingCompleted --> DeliveryPhase : Ready for delivery
+
+DeliveryPhase --> DeliveryStarted : Delivery employee starts delivery
+DeliveryStarted --> DeliveryInProgress : Delivery in progress
+DeliveryInProgress --> DeliveryCompleted : Delivery completed
+
+DeliveryCompleted --> [*] : Order fulfilled
+
+OrderCreated --> Cancelled : Cancel order (any time before delivery)
+EmployeeAssignment --> Cancelled : Cancel assignment
+AdminApproval --> Cancelled : Cancel after rejection
+CookingPhase --> Cancelled : Cancel during cooking
+DeliveryPhase --> Cancelled : Cancel during delivery
+
+note top of OrderCreated
+    Initial State:
+    - Order.status = "pending"
+    - Order.adminApprovalStatus = "PENDING"
+    - Order.paymentStatus = "pending"
+end note
+
+note top of EmployeeAssignment
+    Admin Action:
+    - Set Order.cookingEmployeeId
+    - Set Order.deliveryEmployeeId
+    - Create DeliverySchedule
+    - DeliverySchedule.status = "SCHEDULED"
+    - Calculate travel times
+end note
+
+note top of AdminApproval
+    Admin Decision:
+    - Approve: Order.adminApprovalStatus = "APPROVED"
+    - Reject: Order.adminApprovalStatus = "REJECTED"
+end note
+
+note top of CookingPhase
+    Cooking Employee Actions:
+    - Start: Order.status = "cooking"
+    - Consume inventory reservations
+    - Complete: Order.status = "ready"
+end note
+
+note top of DeliveryPhase
+    Delivery Employee Actions:
+    - Start: Order.status = "out_for_delivery"
+    - DeliverySchedule.status = "IN_PROGRESS"
+    - Complete: Order.status = "delivered"
+    - DeliverySchedule.status = "COMPLETED"
+end note
+
+@enduml
+
